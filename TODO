@@ -1,0 +1,8 @@
+
+Next Steps:
+	1) Edit .bak/new to correspond to this project
+
+	2) Set up GitHub Repository:
+		$ git init
+		$ git add <files>
+		$ git commit -m"Initial"

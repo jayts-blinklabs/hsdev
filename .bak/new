@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Create a new numbered backup directory and move current backup files to it.
+
+# ADD NEW FILES HERE:
+
+FILE_LIST="*.go *.1.ronn Makefile new README.md TODO"
+
+# List existing directories and grab the last from the (sorted) list
+
+# TODO:
+# if there are no 0* directories
+# then
+#	num=0
+# else ...
+
+# (that's "one d", not "ell d")
+num=`ls -1d 0* 2>/dev/null | tail -1`
+
+# TODO: explicitly sort by numeric value, rather
+#   than depending on ls's alphabetic sort
+
+# remove the leading 0s, so it won't look like an octal number
+# to shell's arithmetic evaluation or printf
+
+num=`echo $num | sed -e 's/^0*//'`
+
+# test: should have no leading 0s
+#echo $num
+
+if [ "$num" = "" ]
+then
+	num=0
+fi
+
+# increment the number
+num=$(($num+1))
+
+# make it into a 5-char string with leading 0s
+dir=`printf "%05d" $num`
+
+# test: should have leading 0s
+#echo $dir
+
+mkdir "$dir"
+
+# finally, put all of the backup files into it
+
+for file in `echo $FILE_LIST`
+do
+	mv "$file" "$dir"
+done
+
+# copy this script back in place
+cp "$dir"/new .
+
+# all done.

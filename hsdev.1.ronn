@@ -1,0 +1,45 @@
+hsdev(1) -- BRIEF DESCRIPTION
+===================================
+
+## SYNOPSIS
+
+`hsdev` [-opts]
+
+`hsdev` [-opts] [ number | string ] ...
+
+## DESCRIPTION
+
+bold: **word** (for literals)
+
+literal: `words` (example commands)
+
+## OPTIONS
+
+`-x` ` ` ` ` DESCRIPTION
+
+`-opt _string_ ` ` ` ` ` DESCRIPTION
+
+## EXAMPLES
+
+Do something:
+
+`hsdev`
+
+## CAVEAT UTILITOR
+
+## SEE ALSO
+
+echo(1)
+
+[Option Parsing](https://golang.org/pkg/flag/#hdr-Command_line_flag_syntax)
+
+[Integer Parsing](https://golang.org/pkg/strconv/#ParseInt)
+
+[strconv.Unquote()](https://golang.org/pkg/strconv/#Unquote)
+
+[The Unicode Standard](https://www.unicode.org/standard/standard.html)
+
+## AUTHOR
+
+Jay Ts
+(http://jayts.com)
