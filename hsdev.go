@@ -17,11 +17,11 @@ const (
 	MinVersion	= 1
 	LocalServices	= 1 // NETWORK service
 	UserAgent	= "/hsd-go-client:0.1.0/"
-	
+
 	// Network magic number for mainnet
 	MainnetMagic = 1533997779
 	MainnetPort  = 12038
-	
+
 	// Packet types
 	PacketVersion	= 0
 	PacketVerack	= 1
@@ -29,7 +29,7 @@ const (
 	PacketAddr	= 5
 	PacketGetHeaders = 10
 	PacketHeaders	= 11
-	
+
 	// Other constants
 	MaxMessage = 8 * 1000 * 1000
 )
@@ -106,19 +106,19 @@ func (p *Peer) Close() {
 // framePacket creates a framed packet with header
 func framePacket(cmd byte, payload []byte) []byte {
 	msg := make([]byte, 9+len(payload))
-	
+
 	// Magic number (4 bytes, little-endian)
 	binary.LittleEndian.PutUint32(msg[0:4], MainnetMagic)
-	
+
 	// Command type (1 byte)
 	msg[4] = cmd
-	
+
 	// Payload length (4 bytes, little-endian)
 	binary.LittleEndian.PutUint32(msg[5:9], uint32(len(payload)))
-	
+
 	// Payload
 	copy(msg[9:], payload)
-	
+
 	return msg
 }
 
@@ -127,15 +127,15 @@ func parsePacketHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
 	if len(data) < 9 {
 		return 0, 0, fmt.Errorf("packet too short")
 	}
-	
+
 	magic := binary.LittleEndian.Uint32(data[0:4])
 	if magic != MainnetMagic {
 		return 0, 0, fmt.Errorf("invalid magic: %d", magic)
 	}
-	
+
 	cmd = data[4]
 	payloadLen = binary.LittleEndian.Uint32(data[5:9])
-	
+
 	return cmd, payloadLen, nil
 }
 
@@ -154,16 +154,16 @@ func (p *Peer) receivePacket() (byte, []byte, error) {
 	if err != nil {
 		return 0, nil, err
 	}
-	
+
 	cmd, payloadLen, err := parsePacketHeader(header)
 	if err != nil {
 		return 0, nil, err
 	}
-	
+
 	if payloadLen > MaxMessage {
 		return 0, nil, fmt.Errorf("payload too large: %d", payloadLen)
 	}
-	
+
 	// Read payload
 	payload := make([]byte, payloadLen)
 	if payloadLen > 0 {
@@ -172,39 +172,39 @@ func (p *Peer) receivePacket() (byte, []byte, error) {
 			return 0, nil, err
 		}
 	}
-	
+
 	return cmd, payload, nil
 }
 
 // encodeVersionPacket serializes a VERSION packet
 func encodeVersionPacket(version *VersionPacket) []byte {
 	buf := new(bytes.Buffer)
-	
+
 	binary.Write(buf, binary.LittleEndian, version.Version)
 	binary.Write(buf, binary.LittleEndian, version.Services)
 	binary.Write(buf, binary.LittleEndian, uint32(0)) // high services bits
 	binary.Write(buf, binary.LittleEndian, version.Time)
-	
+
 	// Remote address (88 bytes)
 	encodeNetAddress(buf, &version.Remote)
-	
+
 	// Nonce
 	buf.Write(version.Nonce[:])
-	
+
 	// User agent
 	buf.WriteByte(byte(len(version.Agent)))
 	buf.WriteString(version.Agent)
-	
+
 	// Height
 	binary.Write(buf, binary.LittleEndian, version.Height)
-	
+
 	// No relay
 	if version.NoRelay {
 		buf.WriteByte(1)
 	} else {
 		buf.WriteByte(0)
 	}
-	
+
 	return buf.Bytes()
 }
 
@@ -214,7 +214,7 @@ func encodeNetAddress(buf *bytes.Buffer, addr *NetAddress) {
 	binary.Write(buf, binary.LittleEndian, addr.Services)
 	binary.Write(buf, binary.LittleEndian, uint32(0)) // high services bits
 	buf.WriteByte(0) // address type
-	
+
 	// IPv6 representation (16 bytes)
 	if addr.Host.To4() != nil {
 		// IPv4-mapped IPv6 address
@@ -223,7 +223,7 @@ func encodeNetAddress(buf *bytes.Buffer, addr *NetAddress) {
 	} else {
 		buf.Write(addr.Host.To16())
 	}
-	
+
 	buf.Write(make([]byte, 20)) // reserved
 	binary.Write(buf, binary.BigEndian, addr.Port)
 	buf.Write(addr.Key[:])
@@ -234,19 +234,19 @@ func decodeNetAddress(data []byte) (*NetAddress, int, error) {
 	if len(data) < 88 {
 		return nil, 0, fmt.Errorf("data too short for NetAddress")
 	}
-	
+
 	addr := &NetAddress{}
 	addr.Time = binary.LittleEndian.Uint64(data[0:8])
 	addr.Services = binary.LittleEndian.Uint32(data[8:12])
-	
+
 	// Skip high services bits (4 bytes) and type (1 byte)
 	ipBytes := data[17:33]
 	addr.Host = net.IP(ipBytes)
-	
+
 	// Skip reserved (20 bytes)
 	addr.Port = binary.BigEndian.Uint16(data[53:55])
 	copy(addr.Key[:], data[55:88])
-	
+
 	return addr, 88, nil
 }
 
@@ -267,17 +267,17 @@ func (p *Peer) sendVersionHandshake() error {
 		Height:  0,
 		NoRelay: false,
 	}
-	
+
 	payload := encodeVersionPacket(version)
-	
+
 	// Send VERSION
 	err := p.sendPacket(PacketVersion, payload)
 	if err != nil {
 		return fmt.Errorf("failed to send VERSION: %v", err)
 	}
-	
+
 	fmt.Println("Sent VERSION packet")
-	
+
 	// Wait for VERSION from peer
 	cmd, _, err := p.receivePacket()
 	if err != nil {
@@ -292,17 +292,17 @@ func (p *Peer) sendVersionHandshake() error {
 	if cmd != PacketVersion {
 		fmt.Errorf("expected VERSION, got %d", cmd)
 	}
-	
+
 	fmt.Println("Received VERSION packet")
-	
+
 	// Send VERACK
 	err = p.sendPacket(PacketVerack, []byte{})
 	if err != nil {
 		return fmt.Errorf("failed to send VERACK: %v", err)
 	}
-	
+
 	fmt.Println("Sent VERACK packet")
-	
+
 	// Wait for VERACK
 	cmd, _, err = p.receivePacket()
 	if err != nil {
@@ -316,9 +316,9 @@ func (p *Peer) sendVersionHandshake() error {
 	if cmd != PacketVerack {
 		fmt.Errorf("expected VERACK, got %d", cmd)
 	}
-	
+
 	fmt.Println("Received VERACK packet - handshake complete")
-	
+
 	return nil
 }
 
@@ -328,7 +328,7 @@ func (p *Peer) requestPeerAddresses() error {
 	if err != nil {
 		return fmt.Errorf("failed to send GETADDR: %v", err)
 	}
-	
+
 	fmt.Println("Sent GETADDR packet")
 	return nil
 }
@@ -339,50 +339,52 @@ func (p *Peer) receivePeerAddresses() ([]*NetAddress, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if cmd != PacketAddr {
 		return nil, fmt.Errorf("expected ADDR, got %d", cmd)
 	}
-	
+
 	// Parse varint count
 	count, offset := decodeVarint(payload)
-	
+
 	addresses := make([]*NetAddress, 0, count)
-	
+
 	for i := uint64(0); i < count; i++ {
 		addr, size, err := decodeNetAddress(payload[offset:])
 		if err != nil {
 			return nil, err
 		}
+// skip if empty
+if addr.Port == 0 { continue }
 		addresses = append(addresses, addr)
 		offset += size
 	}
-	
+
 	fmt.Printf("Received %d peer addresses\n", len(addresses))
-	
+
 	return addresses, nil
 }
 
 // requestHeaders sends GETHEADERS request
 func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 	buf := new(bytes.Buffer)
-	
+
 	// Write locator count
 	encodeVarint(buf, uint64(len(locator)))
-	
+
 	// Write locator hashes
 	for _, hash := range locator {
 		buf.Write(hash[:])
 	}
-	
+
 	// Write stop hash
 	buf.Write(stopHash[:])
-	
+
 	err := p.sendPacket(PacketGetHeaders, buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to send GETHEADERS: %v", err)
 	}
-	
+
 	fmt.Println("Sent GETHEADERS packet")
 	return nil
 }
@@ -393,20 +395,20 @@ func (p *Peer) receiveHeaders() ([]*Headers, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if cmd != PacketHeaders {
 		return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
 	}
-	
+
 	// Parse varint count
 	count, offset := decodeVarint(payload)
-	
+
 	if count > 2000 {
 		return nil, fmt.Errorf("too many headers: %d", count)
 	}
-	
+
 	headers := make([]*Headers, 0, count)
-	
+
 	for i := uint64(0); i < count; i++ {
 		header, size, err := decodeHeader(payload[offset:])
 		if err != nil {
@@ -415,9 +417,9 @@ func (p *Peer) receiveHeaders() ([]*Headers, error) {
 		headers = append(headers, header)
 		offset += size
 	}
-	
+
 	fmt.Printf("Received %d block headers\n", len(headers))
-	
+
 	return headers, nil
 }
 
@@ -426,43 +428,43 @@ func decodeHeader(data []byte) (*Headers, int, error) {
 	if len(data) < 196 {
 		return nil, 0, fmt.Errorf("data too short for header")
 	}
-	
+
 	h := &Headers{}
 	offset := 0
-	
+
 	h.Version = binary.LittleEndian.Uint32(data[offset:])
 	offset += 4
-	
+
 	copy(h.PrevBlock[:], data[offset:offset+32])
 	offset += 32
-	
+
 	copy(h.MerkleRoot[:], data[offset:offset+32])
 	offset += 32
-	
+
 	copy(h.WitnessRoot[:], data[offset:offset+32])
 	offset += 32
-	
+
 	copy(h.TreeRoot[:], data[offset:offset+32])
 	offset += 32
-	
+
 	copy(h.ReservedRoot[:], data[offset:offset+32])
 	offset += 32
-	
+
 	h.Time = binary.LittleEndian.Uint64(data[offset:])
 	offset += 8
-	
+
 	h.Bits = binary.LittleEndian.Uint32(data[offset:])
 	offset += 4
-	
+
 	h.Nonce = binary.LittleEndian.Uint32(data[offset:])
 	offset += 4
-	
+
 	copy(h.ExtraNonce[:], data[offset:offset+24])
 	offset += 24
-	
+
 	copy(h.Mask[:], data[offset:offset+32])
 	offset += 32
-	
+
 	return h, offset, nil
 }
 
@@ -487,7 +489,7 @@ func decodeVarint(data []byte) (uint64, int) {
 	if len(data) == 0 {
 		return 0, 0
 	}
-	
+
 	first := data[0]
 	if first < 0xfd {
 		return uint64(first), 1
@@ -529,7 +531,7 @@ func lookupHostWithTimeout(host string) ([]string, error) {
 // discoverPeers resolves seeds to get peer addresses
 func discoverPeers() []string {
 	var peers []string
-	
+
 	for _, seed := range MainnetSeeds {
 		fmt.Printf("Resolving seed: %s\n", seed)
 		addrs, err := lookupHostWithTimeout(seed)
@@ -544,29 +546,29 @@ func discoverPeers() []string {
 			fmt.Printf("  Found peer: %s\n", peerAddr)
 		}
 	}
-	
+
 	return peers
 }
 
 func main() {
 	fmt.Println("Handshake Peer Discovery and Block Header Download")
-	
+
 	// Discover peers from seeds
 
 	fmt.Println("\nDiscovering peers ...")
 	peers := discoverPeers()
-	
+
 	if len(peers) == 0 {
 		fmt.Println("No peers found from seeds")
 		return
 	}
-	
+
 	// Connect to first available peer
 
 	fmt.Println("\nConnecting to peer...")
 	peer := &Peer{}
 	var connected bool
-	
+
 	for _, peerAddr := range peers {
 		fmt.Printf("Trying to connect to %s...\n", peerAddr)
 		err := peer.Connect(peerAddr)
@@ -578,14 +580,14 @@ func main() {
 		fmt.Printf("Connected to %s\n", peerAddr)
 		break
 	}
-	
+
 	if !connected {
 		fmt.Println("Could not connect to any peer")
 		return
 	}
-	
+
 	defer peer.Close()
-	
+
 	// Perform version handshake
 
 	fmt.Println("\nPerforming version handshake...")
@@ -594,7 +596,7 @@ func main() {
 		fmt.Printf("Handshake failed: %v\n", err)
 		return
 	}
-	
+
 	//  Request peer addresses
 	fmt.Println("\nRequesting peer addresses...")
 	err = peer.requestPeerAddresses()
@@ -602,7 +604,7 @@ func main() {
 		fmt.Printf("Failed to request addresses: %v\n", err)
 		return
 	}
-	
+
 	// Receive peer addresses
 	addresses, err := peer.receivePeerAddresses()
 	if err != nil {
@@ -623,33 +625,33 @@ func main() {
 			fmt.Printf("%4d  %s:%d (services: %d)\n", i, addr.Host, addr.Port, addr.Services)
 		}
 	}
-	
+
 	// Request block headers starting from genesis
 	fmt.Println("\nRequesting block headers...")
-	
+
 	// Genesis block hash as locator
 // TODO: Probably wrong. Check and fix.
 	genesisHash := [32]byte{}
 	genesisHashHex := "5b6ef2d3c1f3cdcadfd9a030ba1811efdd17740f14e166489760741d075992e0"
 	genesisBytes, _ := hex.DecodeString(genesisHashHex)
 	copy(genesisHash[:], genesisBytes)
-	
+
 	locator := [][32]byte{genesisHash}
 	stopHash := [32]byte{} // Zero hash means no stop
-	
+
 	err = peer.requestHeaders(locator, stopHash)
 	if err != nil {
 		fmt.Printf("Failed to request headers: %v\n", err)
 		return
 	}
-	
+
 	// Receive headers
 	headers, err := peer.receiveHeaders()
 	if err != nil {
 		fmt.Printf("Failed to receive headers: %v\n", err)
 		return
 	}
-	
+
 	// Display received headers
 	fmt.Println("\nReceived block headers:")
 	for i, header := range headers {
@@ -665,6 +667,6 @@ func main() {
 		fmt.Printf("    Bits: 0x%08x\n", header.Bits)
 		fmt.Printf("    Nonce: %d\n", header.Nonce)
 	}
-	
+
 	fmt.Println("\n[Complete] Successfully performed peer discovery and header download!")
 }
