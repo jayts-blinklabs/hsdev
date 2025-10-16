@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -33,13 +34,11 @@ const (
 	MaxMessage = 8 * 1000 * 1000
 )
 
-// DNS seeds for peer discovery
+// seeds for peer discovery
 var MainnetSeeds = []string{
 	"seed.htools.work",		// Seems to work reliably as of 2025-10-15
-/*
 	"hs-mainnet.bcoin.ninja",	// From hsd source code. Flaky
 	"seed.easyhandshake.com",	// From hsd source code. Flaky
-*/
 }
 
 // NetAddress represents a network address
@@ -84,10 +83,11 @@ type Peer struct {
 	address string
 }
 
+const networkTimeout = 2*time.Second
+
 // Connect establishes a connection to a peer
 func (p *Peer) Connect(address string) error {
-//	conn, err := net.DialTimeout("tcp", address, 10*time.Second)
-	conn, err := net.DialTimeout("tcp", address, 2*time.Second)
+	conn, err := net.DialTimeout("tcp", address, networkTimeout)
 	if err != nil {
 		return err
 	}
@@ -500,13 +500,39 @@ func decodeVarint(data []byte) (uint64, int) {
 	}
 }
 
-// discoverPeersFromDNS resolves DNS seeds to get peer addresses
-func discoverPeersFromDNS() []string {
+func lookupHostWithTimeout(host string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), networkTimeout)
+	defer cancel()
+
+	resultChan := make(chan []string, 1)
+	errChan := make(chan error, 1)
+
+	go func() {
+		addrs, err := net.LookupHost(host)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		resultChan <- addrs
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("lookup timeout after %s", networkTimeout)
+	case err := <-errChan:
+		return nil, err
+	case addrs := <-resultChan:
+		return addrs, nil
+	}
+}
+
+// discoverPeers resolves seeds to get peer addresses
+func discoverPeers() []string {
 	var peers []string
 	
 	for _, seed := range MainnetSeeds {
-		fmt.Printf("Resolving DNS seed: %s\n", seed)
-		addrs, err := net.LookupHost(seed)
+		fmt.Printf("Resolving seed: %s\n", seed)
+		addrs, err := lookupHostWithTimeout(seed)
 		if err != nil {
 			fmt.Printf("Failed to resolve %s: %v\n", seed, err)
 			continue
@@ -524,19 +550,20 @@ func discoverPeersFromDNS() []string {
 
 func main() {
 	fmt.Println("Handshake Peer Discovery and Block Header Download")
-	fmt.Println("===================================================")
 	
-	// Step 1: Discover peers from DNS seeds
-	fmt.Println("\n[Step 1] Discovering peers from DNS seeds...")
-	peers := discoverPeersFromDNS()
+	// Discover peers from seeds
+
+	fmt.Println("\nDiscovering peers ...")
+	peers := discoverPeers()
 	
 	if len(peers) == 0 {
-		fmt.Println("No peers found from DNS seeds")
+		fmt.Println("No peers found from seeds")
 		return
 	}
 	
-	// Step 2: Connect to first available peer
-	fmt.Println("\n[Step 2] Connecting to peer...")
+	// Connect to first available peer
+
+	fmt.Println("\nConnecting to peer...")
 	peer := &Peer{}
 	var connected bool
 	
@@ -559,16 +586,17 @@ func main() {
 	
 	defer peer.Close()
 	
-	// Step 3: Perform version handshake
-	fmt.Println("\n[Step 3] Performing version handshake...")
+	// Perform version handshake
+
+	fmt.Println("\nPerforming version handshake...")
 	err := peer.sendVersionHandshake()
 	if err != nil {
 		fmt.Printf("Handshake failed: %v\n", err)
 		return
 	}
 	
-	// Step 4: Request peer addresses
-	fmt.Println("\n[Step 4] Requesting peer addresses...")
+	//  Request peer addresses
+	fmt.Println("\nRequesting peer addresses...")
 	err = peer.requestPeerAddresses()
 	if err != nil {
 		fmt.Printf("Failed to request addresses: %v\n", err)
@@ -596,10 +624,11 @@ func main() {
 		}
 	}
 	
-	// Step 5: Request block headers starting from genesis
-	fmt.Println("\n[Step 5] Requesting block headers...")
+	// Request block headers starting from genesis
+	fmt.Println("\nRequesting block headers...")
 	
 	// Genesis block hash as locator
+// TODO: Probably wrong. Check and fix.
 	genesisHash := [32]byte{}
 	genesisHashHex := "5b6ef2d3c1f3cdcadfd9a030ba1811efdd17740f14e166489760741d075992e0"
 	genesisBytes, _ := hex.DecodeString(genesisHashHex)

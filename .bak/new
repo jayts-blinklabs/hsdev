@@ -4,7 +4,7 @@
 
 # ADD NEW FILES HERE:
 
-FILE_LIST="*.go *.1.ronn Makefile new README.md TODO"
+FILE_LIST="new hsdev.1.ronn *.go go.mod Makefile push README.md TODO"
 
 # List existing directories and grab the last from the (sorted) list
 

@@ -50,4 +50,4 @@ wc:
 # (Create .bak before running this for the first time.)
 
 backup back bak:
-	@cp -a hsdev.1.ronn *.go Makefile README.md TODO .bak
+	@cp -a hsdev.1.ronn *.go go.mod Makefile push README.md TODO .bak
