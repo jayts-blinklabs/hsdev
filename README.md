@@ -2,8 +2,6 @@
 
 This is an initial pre-release version, and is not intended to be used in any manner.
 
-This README file is automatically generated from a template, and may not apply to the contents of this repository.
-
 ## Introduction
 
 ## Quick Start
@@ -21,6 +19,7 @@ or if you have GNU **make** installed:
 ```
 $ make
 ```
+[Ignore this last part about the manual page. It is not ready yet.]
 
 To install the manual page, copy the file **man1/hsdev.1.gz** to the directory where your manual pages are located. On Linux, this is typically **/usr/share/man/man1**.
 
