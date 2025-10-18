@@ -1,12 +1,20 @@
 package main
 
+/*
+#include "hsdev.c"
+#include "bio.c"
+*/
+import "C"
+
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"net"
+	"os"
 	"time"
 )
 
@@ -226,11 +234,7 @@ func encodeVersionPacket(version *VersionPacket) []byte {
 	binary.Write(buf, binary.LittleEndian, version.Height)
 
 	// No relay
-	if version.NoRelay {
-		buf.WriteByte(1)
-	} else {
-		buf.WriteByte(0)
-	}
+	if version.NoRelay { buf.WriteByte(1) } else { buf.WriteByte(0) }
 
 	return buf.Bytes()
 }
@@ -279,7 +283,11 @@ func decodeNetAddress(data []byte) (*NetAddress, int, error) {
 
 // sendVersionHandshake sends VERSION and waits for VERACK
 func (p *Peer) sendVersionHandshake() error {
-	// Create VERSION packet
+	var nonce [8]byte
+	var err error
+
+	// Create a VERSION packet.
+
 	version := &VersionPacket{
 		Version:  ProtocolVersion,
 		Services: LocalServices,
@@ -295,10 +303,17 @@ func (p *Peer) sendVersionHandshake() error {
 		NoRelay: false,
 	}
 
+	// Set a random nonce.
+
+	_, err = rand.Read(nonce[:])
+	if err != nil { return err }
+	version.Nonce = nonce
+
 	payload := encodeVersionPacket(version)
 
-	// Send VERSION
-	err := p.sendPacket(PacketVersion, payload)
+	// Send the VERSION packet.
+
+	err = p.sendPacket(PacketVersion, payload)
 	if err != nil {
 		return fmt.Errorf("failed to send VERSION: %v", err)
 	}
@@ -311,9 +326,7 @@ func (p *Peer) sendVersionHandshake() error {
 		return fmt.Errorf("failed to receive VERSION: %v", err)
 	}
 
-	if cmd != PacketVersion {
-		return fmt.Errorf("expected VERSION, got %d", cmd)
-	}
+	if cmd != PacketVersion { return fmt.Errorf("expected VERSION, got %d", cmd) }
 
 	fmt.Println("Received VERSION packet")
 
@@ -331,9 +344,7 @@ func (p *Peer) sendVersionHandshake() error {
 		return fmt.Errorf("failed to receive VERACK: %v", err)
 	}
 
-	if cmd != PacketVerack {
-		return fmt.Errorf("expected VERACK, got %d", cmd)
-	}
+	if cmd != PacketVerack { return fmt.Errorf("expected VERACK, got %d", cmd) }
 
 	fmt.Println("Received VERACK packet - handshake complete")
 
@@ -573,6 +584,8 @@ func discoverPeers() []string {
 func main() {
 	fmt.Println("Handshake Peer Discovery and Block Header Download")
 
+C.say_hello()
+
 	// Discover peers from seeds
 
 	fmt.Println("\nDiscovering peers ...")
@@ -610,12 +623,15 @@ func main() {
 
 	// Perform version handshake
 
+// TODO: replace or repair sendVersionHandshake()
+
 	fmt.Println("\nPerforming version handshake...")
 	err := peer.sendVersionHandshake()
 	if err != nil {
 		fmt.Printf("Handshake failed: %v\n", err)
 		return
 	}
+os.Exit(0);
 
 	//  Request peer addresses
 	fmt.Println("\nRequesting peer addresses...")
@@ -645,7 +661,6 @@ func main() {
 	// Request block headers starting from genesis
 	fmt.Println("\nRequesting block headers...")
 
-// TODO: fix this
 	// Genesis block hash as locator
 	genesisHash := [32]byte{}
 	genesisHashHex := "5b6ef2d3c1f3cdcadfd9a030ba1811efdd17740f14e166489760741d075992e0"

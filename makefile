@@ -1,18 +1,19 @@
 # Makefile for hsdev
 
 # Set BINDIR to the directory in your PATH where you want the hsdev executable installed
-BINDIR=/home/jay/.bin/elf
+#BINDIR=/home/jay/.bin/elf
 ## A common choice is
 # BINDIR=/usr/local/bin
 
 # Set MANDIR to where you want the manual page installed.
 ## For Linux, this usually works:
-MANDIR=/usr/share/man/man1
+#MANDIR=/usr/share/man/man1
 
 # Release date. For ronn, when making manual page
-RELDATE=2025-10-15
+#RELDATE=2025-10-15
 
-hsdev: hsdev.go
+hsdev: hsdev.go hsdev.c
+	@echo compiling...
 	@go build -o hsdev hsdev.go
 
 vet:
@@ -50,4 +51,4 @@ wc:
 # (Create .bak before running this for the first time.)
 
 backup back bak:
-	@cp -a hsdev.1.ronn *.go go.mod Makefile push README.md TODO .bak
+	@cp -a bio.c  bio.h  hsdev.c hsdev.1.ronn *.go go.mod Makefile push README.md TODO .bak
