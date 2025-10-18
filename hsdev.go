@@ -23,12 +23,41 @@ const (
 	MainnetPort  = 12038
 
 	// Packet types
-	PacketVersion	= 0
-	PacketVerack	= 1
-	PacketGetAddr	= 4
-	PacketAddr	= 5
+
+	PacketVersion = 0
+	PacketVerack = 1
+	PacketPing = 2
+	PacketPong = 3
+	PacketGetAddr = 4
+	PacketAddr = 5
+	PacketInv = 6
+	PacketGetData = 7
+	PacketNotFound = 8
+	PacketGetBlocks = 9
 	PacketGetHeaders = 10
-	PacketHeaders	= 11
+	PacketHeaders = 11
+	PacketSendHeaders = 12
+	PacketBlock = 13
+	PacketTx = 14
+	PacketReject = 15
+	PacketMempool = 16
+	PacketFilterLoad = 17
+	PacketFilterAdd = 18
+	PacketFilterClear = 19
+	PacketMerkleBlock = 20
+	PacketFeeFilter = 21
+	PacketSendCmpct = 22
+	PacketCmpctBlock = 23
+	PacketGetBlockTxn = 24
+	PacketBlockTxn = 25
+	PacketGetProof = 26
+	PacketProof = 27
+	PacketClaim = 28
+	PacketAirdrop = 29
+	PacketUnknown = 30
+	// Internal
+	PacketInternal = 31
+	PacketData = 32
 
 	// Other constants
 	MaxMessage = 8 * 1000 * 1000
@@ -37,8 +66,8 @@ const (
 // seeds for peer discovery
 var MainnetSeeds = []string{
 	"seed.htools.work",		// Seems to work reliably as of 2025-10-15
-	"hs-mainnet.bcoin.ninja",	// From hsd source code. Flaky
-	"seed.easyhandshake.com",	// From hsd source code. Flaky
+//	"hs-mainnet.bcoin.ninja",	// From hsd source code. Flaky
+//	"seed.easyhandshake.com",	// From hsd source code. Flaky
 }
 
 // NetAddress represents a network address
@@ -98,9 +127,7 @@ func (p *Peer) Connect(address string) error {
 
 // Close closes the peer connection
 func (p *Peer) Close() {
-	if p.conn != nil {
-		p.conn.Close()
-	}
+	if p.conn != nil { p.conn.Close() }
 }
 
 // framePacket creates a framed packet with header
@@ -284,13 +311,8 @@ func (p *Peer) sendVersionHandshake() error {
 		return fmt.Errorf("failed to receive VERSION: %v", err)
 	}
 
-/*
 	if cmd != PacketVersion {
 		return fmt.Errorf("expected VERSION, got %d", cmd)
-	}
-*/
-	if cmd != PacketVersion {
-		fmt.Errorf("expected VERSION, got %d", cmd)
 	}
 
 	fmt.Println("Received VERSION packet")
@@ -308,13 +330,9 @@ func (p *Peer) sendVersionHandshake() error {
 	if err != nil {
 		return fmt.Errorf("failed to receive VERACK: %v", err)
 	}
-/*
+
 	if cmd != PacketVerack {
 		return fmt.Errorf("expected VERACK, got %d", cmd)
-	}
-*/
-	if cmd != PacketVerack {
-		fmt.Errorf("expected VERACK, got %d", cmd)
 	}
 
 	fmt.Println("Received VERACK packet - handshake complete")
@@ -354,8 +372,10 @@ func (p *Peer) receivePeerAddresses() ([]*NetAddress, error) {
 		if err != nil {
 			return nil, err
 		}
-// skip if empty
-if addr.Port == 0 { continue }
+
+		// Skip if empty. Use the port number to check for useless addr
+		if addr.Port == 0 { continue }
+
 		addresses = append(addresses, addr)
 		offset += size
 	}
@@ -611,26 +631,22 @@ func main() {
 		fmt.Printf("Failed to receive addresses: %v\n", err)
 	} else {
 		fmt.Println("\nDiscovered peers:")
-/*
-// print the first 10 addresses
+
 		for i, addr := range addresses {
+			fmt.Printf("%4d  %s:%d (services: %d)\n", i, addr.Host, addr.Port, addr.Services)
+			// print the first 10 addresses
 			if i >= 10 {
 				fmt.Printf("  ... and %d more\n", len(addresses)-10)
 				break
 			}
-*/
-// print all of the addresses
-// TODO: empty ones after a certain point?? 'range addresses' is not stopping at the right place
-		for i, addr := range addresses {
-			fmt.Printf("%4d  %s:%d (services: %d)\n", i, addr.Host, addr.Port, addr.Services)
 		}
 	}
 
 	// Request block headers starting from genesis
 	fmt.Println("\nRequesting block headers...")
 
+// TODO: fix this
 	// Genesis block hash as locator
-// TODO: Probably wrong. Check and fix.
 	genesisHash := [32]byte{}
 	genesisHashHex := "5b6ef2d3c1f3cdcadfd9a030ba1811efdd17740f14e166489760741d075992e0"
 	genesisBytes, _ := hex.DecodeString(genesisHashHex)
