@@ -30,42 +30,42 @@ const (
 	MainnetMagic = 1533997779
 	MainnetPort  = 12038
 
-	// Packet types
+	// Message types
 
-	PacketVersion = 0
-	PacketVerack = 1
-	PacketPing = 2
-	PacketPong = 3
-	PacketGetAddr = 4
-	PacketAddr = 5
-	PacketInv = 6
-	PacketGetData = 7
-	PacketNotFound = 8
-	PacketGetBlocks = 9
-	PacketGetHeaders = 10
-	PacketHeaders = 11
-	PacketSendHeaders = 12
-	PacketBlock = 13
-	PacketTx = 14
-	PacketReject = 15
-	PacketMempool = 16
-	PacketFilterLoad = 17
-	PacketFilterAdd = 18
-	PacketFilterClear = 19
-	PacketMerkleBlock = 20
-	PacketFeeFilter = 21
-	PacketSendCmpct = 22
-	PacketCmpctBlock = 23
-	PacketGetBlockTxn = 24
-	PacketBlockTxn = 25
-	PacketGetProof = 26
-	PacketProof = 27
-	PacketClaim = 28
-	PacketAirdrop = 29
-	PacketUnknown = 30
+	MessageVersion = 0
+	MessageVerack = 1
+	MessagePing = 2
+	MessagePong = 3
+	MessageGetAddr = 4
+	MessageAddr = 5
+	MessageInv = 6
+	MessageGetData = 7
+	MessageNotFound = 8
+	MessageGetBlocks = 9
+	MessageGetHeaders = 10
+	MessageHeaders = 11
+	MessageSendHeaders = 12
+	MessageBlock = 13
+	MessageTx = 14
+	MessageReject = 15
+	MessageMempool = 16
+	MessageFilterLoad = 17
+	MessageFilterAdd = 18
+	MessageFilterClear = 19
+	MessageMerkleBlock = 20
+	MessageFeeFilter = 21
+	MessageSendCmpct = 22
+	MessageCmpctBlock = 23
+	MessageGetBlockTxn = 24
+	MessageBlockTxn = 25
+	MessageGetProof = 26
+	MessageProof = 27
+	MessageClaim = 28
+	MessageAirdrop = 29
+	MessageUnknown = 30
 	// Internal
-	PacketInternal = 31
-	PacketData = 32
+	MessageInternal = 31
+	MessageData = 32
 
 	// Other constants
 	MaxMessage = 8 * 1000 * 1000
@@ -87,8 +87,8 @@ type NetAddress struct {
 	Key	[33]byte
 }
 
-// VersionPacket for version handshake
-type VersionPacket struct {
+// VersionMessage for version handshake
+type VersionMessage struct {
 	Version	uint32
 	Services uint32
 	Time	uint64
@@ -138,8 +138,8 @@ func (p *Peer) Close() {
 	if p.conn != nil { p.conn.Close() }
 }
 
-// framePacket creates a framed packet with header
-func framePacket(cmd byte, payload []byte) []byte {
+// frameMessage creates a framed packet with header
+func frameMessage(cmd byte, payload []byte) []byte {
 	msg := make([]byte, 9+len(payload))
 
 	// Magic number (4 bytes, little-endian)
@@ -157,8 +157,8 @@ func framePacket(cmd byte, payload []byte) []byte {
 	return msg
 }
 
-// parsePacketHeader reads and validates packet header
-func parsePacketHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
+// parseMessageHeader reads and validates packet header
+func parseMessageHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
 	if len(data) < 9 {
 		return 0, 0, fmt.Errorf("packet too short")
 	}
@@ -174,15 +174,15 @@ func parsePacketHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
 	return cmd, payloadLen, nil
 }
 
-// sendPacket sends a framed packet to the peer
-func (p *Peer) sendPacket(cmd byte, payload []byte) error {
-	packet := framePacket(cmd, payload)
+// sendMessage sends a framed packet to the peer
+func (p *Peer) sendMessage(cmd byte, payload []byte) error {
+	packet := frameMessage(cmd, payload)
 	_, err := p.conn.Write(packet)
 	return err
 }
 
-// receivePacket receives and parses a packet
-func (p *Peer) receivePacket() (byte, []byte, error) {
+// receiveMessage receives and parses a packet
+func (p *Peer) receiveMessage() (byte, []byte, error) {
 	// Read header
 	header := make([]byte, 9)
 	_, err := p.conn.Read(header)
@@ -190,7 +190,7 @@ func (p *Peer) receivePacket() (byte, []byte, error) {
 		return 0, nil, err
 	}
 
-	cmd, payloadLen, err := parsePacketHeader(header)
+	cmd, payloadLen, err := parseMessageHeader(header)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -211,8 +211,8 @@ func (p *Peer) receivePacket() (byte, []byte, error) {
 	return cmd, payload, nil
 }
 
-// encodeVersionPacket serializes a VERSION packet
-func encodeVersionPacket(version *VersionPacket) []byte {
+// encodeVersionMessage serializes a VERSION packet
+func encodeVersionMessage(version *VersionMessage) []byte {
 	buf := new(bytes.Buffer)
 
 	binary.Write(buf, binary.LittleEndian, version.Version)
@@ -288,7 +288,7 @@ func (p *Peer) sendVersionHandshake() error {
 
 	// Create a VERSION packet.
 
-	version := &VersionPacket{
+	version := &VersionMessage{
 		Version:  ProtocolVersion,
 		Services: LocalServices,
 		Time:	uint64(time.Now().Unix()),
@@ -309,11 +309,11 @@ func (p *Peer) sendVersionHandshake() error {
 	if err != nil { return err }
 	version.Nonce = nonce
 
-	payload := encodeVersionPacket(version)
+	payload := encodeVersionMessage(version)
 
 	// Send the VERSION packet.
 
-	err = p.sendPacket(PacketVersion, payload)
+	err = p.sendMessage(MessageVersion, payload)
 	if err != nil {
 		return fmt.Errorf("failed to send VERSION: %v", err)
 	}
@@ -321,17 +321,17 @@ func (p *Peer) sendVersionHandshake() error {
 	fmt.Println("Sent VERSION packet")
 
 	// Wait for VERSION from peer
-	cmd, _, err := p.receivePacket()
+	cmd, _, err := p.receiveMessage()
 	if err != nil {
 		return fmt.Errorf("failed to receive VERSION: %v", err)
 	}
 
-	if cmd != PacketVersion { return fmt.Errorf("expected VERSION, got %d", cmd) }
+	if cmd != MessageVersion { return fmt.Errorf("expected VERSION, got %d", cmd) }
 
 	fmt.Println("Received VERSION packet")
 
 	// Send VERACK
-	err = p.sendPacket(PacketVerack, []byte{})
+	err = p.sendMessage(MessageVerack, []byte{})
 	if err != nil {
 		return fmt.Errorf("failed to send VERACK: %v", err)
 	}
@@ -339,12 +339,12 @@ func (p *Peer) sendVersionHandshake() error {
 	fmt.Println("Sent VERACK packet")
 
 	// Wait for VERACK
-	cmd, _, err = p.receivePacket()
+	cmd, _, err = p.receiveMessage()
 	if err != nil {
 		return fmt.Errorf("failed to receive VERACK: %v", err)
 	}
 
-	if cmd != PacketVerack { return fmt.Errorf("expected VERACK, got %d", cmd) }
+	if cmd != MessageVerack { return fmt.Errorf("expected VERACK, got %d", cmd) }
 
 	fmt.Println("Received VERACK packet - handshake complete")
 
@@ -353,7 +353,7 @@ func (p *Peer) sendVersionHandshake() error {
 
 // requestPeerAddresses sends GETADDR request
 func (p *Peer) requestPeerAddresses() error {
-	err := p.sendPacket(PacketGetAddr, []byte{})
+	err := p.sendMessage(MessageGetAddr, []byte{})
 	if err != nil {
 		return fmt.Errorf("failed to send GETADDR: %v", err)
 	}
@@ -364,12 +364,12 @@ func (p *Peer) requestPeerAddresses() error {
 
 // receivePeerAddresses receives ADDR response
 func (p *Peer) receivePeerAddresses() ([]*NetAddress, error) {
-	cmd, payload, err := p.receivePacket()
+	cmd, payload, err := p.receiveMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	if cmd != PacketAddr {
+	if cmd != MessageAddr {
 		return nil, fmt.Errorf("expected ADDR, got %d", cmd)
 	}
 
@@ -411,7 +411,7 @@ func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 	// Write stop hash
 	buf.Write(stopHash[:])
 
-	err := p.sendPacket(PacketGetHeaders, buf.Bytes())
+	err := p.sendMessage(MessageGetHeaders, buf.Bytes())
 	if err != nil {
 		return fmt.Errorf("failed to send GETHEADERS: %v", err)
 	}
@@ -422,12 +422,12 @@ func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 
 // receiveHeaders receives HEADERS response
 func (p *Peer) receiveHeaders() ([]*Headers, error) {
-	cmd, payload, err := p.receivePacket()
+	cmd, payload, err := p.receiveMessage()
 	if err != nil {
 		return nil, err
 	}
 
-	if cmd != PacketHeaders {
+	if cmd != MessageHeaders {
 		return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
 	}
 

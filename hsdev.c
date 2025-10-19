@@ -33,121 +33,134 @@ static const uint8_t hsk_ip4_mapped[12] =
 	0x00, 0x00, 0xff, 0xff
 };
 
-typedef struct hsk_addr_s {
-  uint8_t type;
-  uint8_t ip[36];
-  uint16_t port;
-  uint8_t key[33];
+typedef struct hsk_addr_s
+{
+	uint8_t type;
+	uint8_t ip[36];
+	uint16_t port;
+	uint8_t key[33];
 } hsk_addr_t;
 
-typedef struct {
-  uint64_t time;
-  uint64_t services;
-  hsk_addr_t addr;
+typedef struct
+{
+	uint64_t time;
+	uint64_t services;
+	hsk_addr_t addr;
 } hsk_netaddr_t;
 
-typedef struct {
-  uint8_t cmd;
+typedef struct
+{
+	uint8_t cmd;
 } hsk_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  uint32_t version;
-  uint64_t services;
-  uint64_t time;
-  hsk_netaddr_t remote;
-  uint64_t nonce;
-  char agent[256];
-  uint32_t height;
-  uint8_t no_relay;
+typedef struct
+{
+	uint8_t cmd;
+	uint32_t version;
+	uint64_t services;
+	uint64_t time;
+	hsk_netaddr_t remote;
+	uint64_t nonce;
+	char agent[256];
+	uint32_t height;
+	uint8_t no_relay;
 } hsk_version_msg_t;
 
-typedef struct {
-  uint8_t cmd;
+typedef struct
+{
+	uint8_t cmd;
 } hsk_verack_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  uint64_t nonce;
+typedef struct
+{
+	uint8_t cmd;
+	uint64_t nonce;
 } hsk_ping_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  uint64_t nonce;
+typedef struct
+{
+	uint8_t cmd;
+	uint64_t nonce;
 } hsk_pong_msg_t;
 
-typedef struct {
-  uint8_t cmd;
+typedef struct
+{
+	uint8_t cmd;
 } hsk_getaddr_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  size_t addr_count;
-  hsk_netaddr_t addrs[1000];
+typedef struct
+{
+	uint8_t cmd;
+	size_t addr_count;
+	hsk_netaddr_t addrs[1000];
 } hsk_addr_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  size_t hash_count;
-  uint8_t hashes[64][32];
-  uint8_t stop[32];
+typedef struct
+{
+	uint8_t cmd;
+	size_t hash_count;
+	uint8_t hashes[64][32];
+	uint8_t stop[32];
 } hsk_getheaders_msg_t;
 
-typedef struct hsk_header_s {
-  // Preheader.
-  uint32_t nonce;
-  uint64_t time;
-  uint8_t prev_block[32];
-  uint8_t name_root[32];
+typedef struct hsk_header_s
+{
+	// Preheader.
+	uint32_t nonce;
+	uint64_t time;
+	uint8_t prev_block[32];
+	uint8_t name_root[32];
 
-  // Subheader.
-  uint8_t extra_nonce[24];
-  uint8_t reserved_root[32];
-  uint8_t witness_root[32];
-  uint8_t merkle_root[32];
-  uint32_t version;
-  uint32_t bits;
+	// Subheader.
+	uint8_t extra_nonce[24];
+	uint8_t reserved_root[32];
+	uint8_t witness_root[32];
+	uint8_t merkle_root[32];
+	uint32_t version;
+	uint32_t bits;
 
-  // Mask.
-  uint8_t mask[32];
+	// Mask.
+	uint8_t mask[32];
 
-  bool cache;
-  uint8_t hash[32];
-  uint32_t height;
-  uint8_t work[32];
+	bool cache;
+	uint8_t hash[32];
+	uint32_t height;
+	uint8_t work[32];
 
-  struct hsk_header_s *next;
+	struct hsk_header_s *next;
 } hsk_header_t;
 
-typedef struct {
-  uint8_t cmd;
-  size_t header_count;
-  hsk_header_t *headers;
+typedef struct
+{
+	uint8_t cmd;
+	size_t header_count;
+	hsk_header_t *headers;
 } hsk_headers_msg_t;
 
-typedef struct {
-  uint8_t cmd;
+typedef struct
+{
+	uint8_t cmd;
 } hsk_sendheaders_msg_t;
 
-typedef struct {
-  uint8_t cmd;
-  uint8_t root[32];
-  uint8_t key[32];
+typedef struct
+{
+	uint8_t cmd;
+	uint8_t root[32];
+	uint8_t key[32];
 } hsk_getproof_msg_t;
 
-void
-hsk_addr_init(hsk_addr_t *addr) {
-  assert(addr);
-  memset(addr, 0x00, sizeof(hsk_addr_t));
+void hsk_addr_init(hsk_addr_t *addr)
+{
+	assert(addr);
+	memset(addr, 0x00, sizeof(hsk_addr_t));
 }
 
-void
-hsk_netaddr_init(hsk_netaddr_t *na) {
-  if (na == NULL)
-    return;
-  na->time = 0;
-  na->services = 0;
-  hsk_addr_init(&na->addr);
+void hsk_netaddr_init(hsk_netaddr_t *na)
+{
+	if (na == NULL) return;
+	na->time = 0;
+	na->services = 0;
+	hsk_addr_init(&na->addr);
 }
 
 const char *hsk_msg_str(uint8_t cmd)
@@ -321,9 +334,10 @@ bool hsk_addr_is_mapped(const hsk_addr_t *addr)
 	return memcmp(addr->ip, hsk_ip4_mapped, sizeof(hsk_ip4_mapped)) == 0;
 }
 
-static const uint8_t hsk_tor_onion[6] = {
-  0xfd, 0x87, 0xd8, 0x7e,
-  0xeb, 0x43
+static const uint8_t hsk_tor_onion[6] =
+{
+	0xfd, 0x87, 0xd8, 0x7e,
+	0xeb, 0x43
 };
 
 bool hsk_addr_is_onion(const hsk_addr_t *addr)
@@ -372,91 +386,108 @@ static int inet_ntop4(const unsigned char *src, char *dst, size_t size)
 
 static int inet_ntop6(const unsigned char *src, char *dst, size_t size)
 {
-  /*
-   * Note that int32_t and int16_t need only be "at least" large enough
-   * to contain a value of the specified size.  On some systems, like
-   * Crays, there is no such thing as an integer variable with 16 bits.
-   * Keep this in mind if you think this function should have been coded
-   * to use pointer overlays.  All the world's not a VAX.
-   */
-  char tmp[UV__INET6_ADDRSTRLEN], *tp;
-  struct { int base, len; } best, cur;
-  unsigned int words[sizeof(struct in6_addr) / sizeof(uint16_t)];
-  int i;
+	/*
+	* Note that int32_t and int16_t need only be "at least" large enough
+	* to contain a value of the specified size.  On some systems, like
+	* Crays, there is no such thing as an integer variable with 16 bits.
+	* Keep this in mind if you think this function should have been coded
+	* to use pointer overlays.  All the world's not a VAX.
+	*/
+	char tmp[UV__INET6_ADDRSTRLEN], *tp;
+	struct { int base, len; } best, cur;
+	unsigned int words[sizeof(struct in6_addr) / sizeof(uint16_t)];
+	int i;
 
-  /*
-   * Preprocess:
-   *  Copy the input (bytewise) array into a wordwise array.
-   *  Find the longest run of 0x00's in src[] for :: shorthanding.
-   */
-  memset(words, '\0', sizeof words);
-  for (i = 0; i < (int) sizeof(struct in6_addr); i++)
-    words[i / 2] |= (src[i] << ((1 - (i % 2)) << 3));
-  best.base = -1;
-  best.len = 0;
-  cur.base = -1;
-  cur.len = 0;
-  for (i = 0; i < (int) ARRAY_SIZE(words); i++) {
-    if (words[i] == 0) {
-      if (cur.base == -1)
-        cur.base = i, cur.len = 1;
-      else
-        cur.len++;
-    } else {
-      if (cur.base != -1) {
-        if (best.base == -1 || cur.len > best.len)
-          best = cur;
-        cur.base = -1;
-      }
-    }
-  }
-  if (cur.base != -1) {
-    if (best.base == -1 || cur.len > best.len)
-      best = cur;
-  }
-  if (best.base != -1 && best.len < 2)
-    best.base = -1;
+	/*
+	* Preprocess:
+	*  Copy the input (bytewise) array into a wordwise array.
+	*  Find the longest run of 0x00's in src[] for :: shorthanding.
+	*/
+	memset(words, '\0', sizeof words);
+	for(i = 0; i < (int) sizeof(struct in6_addr); i++)
+		words[i / 2] |= (src[i] << ((1 - (i % 2)) << 3));
+	best.base = -1;
+	best.len = 0;
+	cur.base = -1;
+	cur.len = 0;
 
-  /*
-   * Format the result.
-   */
-  tp = tmp;
-  for (i = 0; i < (int) ARRAY_SIZE(words); i++) {
-    /* Are we inside the best run of 0x00's? */
-    if (best.base != -1 && i >= best.base &&
-        i < (best.base + best.len)) {
-      if (i == best.base)
-        *tp++ = ':';
-      continue;
-    }
-    /* Are we following an initial run of 0x00s or any real hex? */
-    if (i != 0)
-      *tp++ = ':';
-    /* Is this address an encapsulated IPv4? */
-    if (i == 6 && best.base == 0 && (best.len == 6 ||
-        (best.len == 7 && words[7] != 0x0001) ||
-        (best.len == 5 && words[5] == 0xffff))) {
-      int err = inet_ntop4(src+12, tp, sizeof tmp - (tp - tmp));
-      if (err)
-        return err;
-      tp += strlen(tp);
-      break;
-    }
-    tp += sprintf(tp, "%x", words[i]);
-  }
-  /* Was it a trailing run of 0x00's? */
-  if (best.base != -1 && (best.base + best.len) == ARRAY_SIZE(words))
-    *tp++ = ':';
-  *tp++ = '\0';
+	for(i = 0; i < (int) ARRAY_SIZE(words); i++)
+	{
+		if(words[i] == 0)
+		{
+			if(cur.base == -1) cur.base = i, cur.len = 1;
+			else cur.len++;
+		}
+		else
+		{
+			if (cur.base != -1)
+			{
+				if (best.base == -1 || cur.len > best.len) best = cur;
+				cur.base = -1;
+			}
+		}
+	}
 
-  /*
-   * Check for overflow, copy, and we're done.
-   */
-  if ((size_t)(tp - tmp) > size) {
-    return UV_ENOSPC;
-  }
-  strcpy(dst, tmp);
-  return 0;
+	if(cur.base != -1)
+	{
+		if (best.base == -1 || cur.len > best.len) best = cur;
+	}
+
+	if (best.base != -1 && best.len < 2) best.base = -1;
+
+	/*
+	* Format the result.
+	*/
+
+	tp = tmp;
+
+	for(i = 0; i < (int) ARRAY_SIZE(words); i++)
+	{
+		/* Are we inside the best run of 0x00's? */
+
+		if (best.base != -1 && i >= best.base && i < (best.base + best.len))
+		{
+			if (i == best.base)
+			*tp++ = ':';
+			continue;
+		}
+
+		/* Are we following an initial run of 0x00s or any real hex? */
+
+		if (i != 0) *tp++ = ':';
+
+		/* Is this address an encapsulated IPv4? */
+
+		if (i == 6 && best.base == 0 && (best.len == 6
+		|| (best.len == 7 && words[7] != 0x0001)
+		|| (best.len == 5 && words[5] == 0xffff)))
+		{
+			int err = inet_ntop4(src+12, tp, sizeof tmp - (tp - tmp));
+			if (err) return err;
+			tp += strlen(tp);
+			break;
+		}
+		tp += sprintf(tp, "%x", words[i]);
+	}
+
+	/* Was it a trailing run of 0x00's? */
+
+	if (best.base != -1 && (best.base + best.len) == ARRAY_SIZE(words))
+
+	*tp++ = ':';
+	*tp++ = '\0';
+
+	/*
+	* Check for overflow, copy, and we're done.
+	*/
+
+	if ((size_t)(tp - tmp) > size)
+	{
+		return UV_ENOSPC;
+	}
+	strcpy(dst, tmp);
+
+	return 0;
 }
 
 int uv_inet_ntop(int af, const void* src, char* dst, size_t size)
@@ -528,12 +559,12 @@ void hsk_version_msg_print(const hsk_version_msg_t *msg, const char *prefix)
 
 bool hsk_verack_msg_read(uint8_t **data, size_t *data_len, hsk_verack_msg_t *msg)
 {
-  return true;
+	return true;
 }
 
 int hsk_verack_msg_write(const hsk_verack_msg_t *msg, uint8_t **data)
 {
-  return 0;
+	return 0;
 }
 
 bool hsk_msg_read(uint8_t **data, size_t *data_len, hsk_msg_t *msg)

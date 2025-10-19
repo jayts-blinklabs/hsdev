@@ -51,4 +51,4 @@ wc:
 # (Create .bak before running this for the first time.)
 
 backup back bak:
-	@cp -a bio.c  bio.h  hsdev.c hsdev.1.ronn *.go go.mod Makefile push README.md TODO .bak
+	@cp -a bio.c  bio.h  hsdev.c hsdev.1.ronn *.go go.mod makefile push README.md TODO .bak
