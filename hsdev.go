@@ -1,6 +1,10 @@
 package main
 
 /*
+#cgo CFLAGS: -I/usr/include
+#cgo LDFLAGS: -L/usr/lib -luv
+#include <uv.h>
+// #include <stdio.h>
 #include "hsdev.c"
 #include "bio.c"
 */
@@ -23,7 +27,7 @@ const (
 	// Protocol constants
 	ProtocolVersion = 3
 	MinVersion	= 1
-	LocalServices	= 1 // NETWORK service
+	LocalServices	= 1 // network service
 	UserAgent	= "/hsd-go-client:0.1.0/"
 
 	// Network magic number for mainnet
@@ -313,6 +317,7 @@ func (p *Peer) sendVersionHandshake() error {
 
 	// Send the VERSION packet.
 
+// WORK
 	err = p.sendMessage(MessageVersion, payload)
 	if err != nil {
 		return fmt.Errorf("failed to send VERSION: %v", err)
