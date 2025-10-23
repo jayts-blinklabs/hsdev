@@ -12,7 +12,7 @@
 # Release date. For ronn, when making manual page
 #RELDATE=2025-10-15
 
-hsdev: hsdev.go hsdev.c
+hsdev: hsdev.go
 	@echo compiling...
 	@go build -o hsdev hsdev.go
 
@@ -51,4 +51,4 @@ wc:
 # (Create .bak before running this for the first time.)
 
 backup back bak:
-	@cp -a bio.c  bio.h  hsdev.c hsdev.1.ronn *.go go.mod makefile push README.md TODO .bak
+	@cp -a hsdev.1.ronn *.go go.mod makefile push README.md TODO .bak

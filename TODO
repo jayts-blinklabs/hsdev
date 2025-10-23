@@ -1,5 +1,0 @@
-Find code in hnsd that calls the version and verack message functions.
-
-Include it in hsdev.c
-
-Call it from hsdev.go

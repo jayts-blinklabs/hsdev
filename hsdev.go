@@ -1,15 +1,5 @@
 package main
 
-/*
-#cgo CFLAGS: -I/usr/include
-#cgo LDFLAGS: -L/usr/lib -luv
-#include <uv.h>
-// #include <stdio.h>
-#include "hsdev.c"
-#include "bio.c"
-*/
-import "C"
-
 import (
 	"bytes"
 	"context"
@@ -17,6 +7,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+mrand	"math/rand"
 	"net"
 	"os"
 	"time"
@@ -25,13 +16,16 @@ import (
 // Constants from Handshake protocol
 const (
 	// Protocol constants
-	ProtocolVersion = 3
+//	ProtocolVersion = 3
+	ProtocolVersion = 1	// from HNSD
 	MinVersion	= 1
-	LocalServices	= 1 // network service
+//	LocalServices	= 1	// network service
+	LocalServices	= 0	// From HNSD: no services
 	UserAgent	= "/hsd-go-client:0.1.0/"
 
-	// Network magic number for mainnet
+	// Network magic number for mainnet.
 	MainnetMagic = 1533997779
+	// Port for Handshake P2P communications.
 	MainnetPort  = 12038
 
 	// Message types
@@ -91,7 +85,7 @@ type NetAddress struct {
 	Key	[33]byte
 }
 
-// VersionMessage for version handshake
+// VersionMessage for version
 type VersionMessage struct {
 	Version	uint32
 	Services uint32
@@ -126,6 +120,31 @@ type Peer struct {
 
 const networkTimeout = 2*time.Second
 
+// The following 3 functions implement a funny little
+// random number generator copied from hnsd, used for
+// creating nonces.
+// TODO: Maybe replace this with a simple 64-bit random number.
+
+func sysrandom() uint32 {
+	r := mrand.New(mrand.NewSource(time.Now().UnixNano()))
+	return r.Uint32()
+}
+
+func hsk_random() uint32 {
+	var n uint32
+	n = sysrandom();
+	return n << 16 ^ sysrandom()
+}
+
+func hsk_nonce() uint64 {
+	return uint64(hsk_random()) << 32 + uint64(hsk_random())
+}
+
+// hsk_now() returns Unix epoch seconds. Used for timestamping messages.
+func hsk_now() int64 {
+	return(time.Now().Unix())
+}
+
 // Connect establishes a connection to a peer
 func (p *Peer) Connect(address string) error {
 	conn, err := net.DialTimeout("tcp", address, networkTimeout)
@@ -142,20 +161,22 @@ func (p *Peer) Close() {
 	if p.conn != nil { p.conn.Close() }
 }
 
-// frameMessage creates a framed packet with header
-func frameMessage(cmd byte, payload []byte) []byte {
-	msg := make([]byte, 9+len(payload))
+const messageHeaderLength = 9
 
-	// Magic number (4 bytes, little-endian)
+// createMessage creates a framed packet with header
+func createMessage(cmd byte, payload []byte) []byte {
+	msg := make([]byte, messageHeaderLength + len(payload))
+
+	// Start with the magic number: 4 bytes, little-endian.
 	binary.LittleEndian.PutUint32(msg[0:4], MainnetMagic)
 
-	// Command type (1 byte)
+	// Add the message (command) type: 1 byte.
 	msg[4] = cmd
 
-	// Payload length (4 bytes, little-endian)
+	// Add payload length: 4 bytes, little-endian.
 	binary.LittleEndian.PutUint32(msg[5:9], uint32(len(payload)))
 
-	// Payload
+	// Add the payload.
 	copy(msg[9:], payload)
 
 	return msg
@@ -180,7 +201,9 @@ func parseMessageHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
 
 // sendMessage sends a framed packet to the peer
 func (p *Peer) sendMessage(cmd byte, payload []byte) error {
-	packet := frameMessage(cmd, payload)
+	// Create the message, using the command (message) type and payload.
+	packet := createMessage(cmd, payload)
+	// Send it.
 	_, err := p.conn.Write(packet)
 	return err
 }
@@ -190,14 +213,10 @@ func (p *Peer) receiveMessage() (byte, []byte, error) {
 	// Read header
 	header := make([]byte, 9)
 	_, err := p.conn.Read(header)
-	if err != nil {
-		return 0, nil, err
-	}
+	if err != nil { return 0, nil, err }
 
 	cmd, payloadLen, err := parseMessageHeader(header)
-	if err != nil {
-		return 0, nil, err
-	}
+	if err != nil { return 0, nil, err }
 
 	if payloadLen > MaxMessage {
 		return 0, nil, fmt.Errorf("payload too large: %d", payloadLen)
@@ -207,9 +226,7 @@ func (p *Peer) receiveMessage() (byte, []byte, error) {
 	payload := make([]byte, payloadLen)
 	if payloadLen > 0 {
 		_, err = p.conn.Read(payload)
-		if err != nil {
-			return 0, nil, err
-		}
+		if err != nil { return 0, nil, err }
 	}
 
 	return cmd, payload, nil
@@ -285,7 +302,7 @@ func decodeNetAddress(data []byte) (*NetAddress, int, error) {
 	return addr, 88, nil
 }
 
-// sendVersionHandshake sends VERSION and waits for VERACK
+// sendVersionHandshake sends VERSION
 func (p *Peer) sendVersionHandshake() error {
 	var nonce [8]byte
 	var err error
@@ -317,7 +334,6 @@ func (p *Peer) sendVersionHandshake() error {
 
 	// Send the VERSION packet.
 
-// WORK
 	err = p.sendMessage(MessageVersion, payload)
 	if err != nil {
 		return fmt.Errorf("failed to send VERSION: %v", err)
@@ -325,8 +341,18 @@ func (p *Peer) sendVersionHandshake() error {
 
 	fmt.Println("Sent VERSION packet")
 
-	// Wait for VERSION from peer
+	// Wait for VERACK from peer
 	cmd, _, err := p.receiveMessage()
+	if err != nil {
+		return fmt.Errorf("failed to receive VERACK: %v", err)
+	}
+
+	if cmd != MessageVerack { return fmt.Errorf("expected VERACK, got %d", cmd) }
+
+	fmt.Println("Received VERACK packet")
+
+	// Wait for VERSION
+	cmd, _, err = p.receiveMessage()
 	if err != nil {
 		return fmt.Errorf("failed to receive VERSION: %v", err)
 	}
@@ -341,17 +367,7 @@ func (p *Peer) sendVersionHandshake() error {
 		return fmt.Errorf("failed to send VERACK: %v", err)
 	}
 
-	fmt.Println("Sent VERACK packet")
-
-	// Wait for VERACK
-	cmd, _, err = p.receiveMessage()
-	if err != nil {
-		return fmt.Errorf("failed to receive VERACK: %v", err)
-	}
-
-	if cmd != MessageVerack { return fmt.Errorf("expected VERACK, got %d", cmd) }
-
-	fmt.Println("Received VERACK packet - handshake complete")
+	fmt.Println("Sent VERACK packet\nInitial handshake complete")
 
 	return nil
 }
@@ -428,12 +444,18 @@ func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 // receiveHeaders receives HEADERS response
 func (p *Peer) receiveHeaders() ([]*Headers, error) {
 	cmd, payload, err := p.receiveMessage()
-	if err != nil {
-		return nil, err
-	}
+	if err != nil { return nil, err }
 
 	if cmd != MessageHeaders {
-		return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
+//		return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
+		fmt.Errorf("Received command: %d", cmd)
+
+		cmd, payload, err = p.receiveMessage()
+		if err != nil { return nil, err }
+
+		if cmd != MessageHeaders {
+			return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
+		}
 	}
 
 	// Parse varint count
@@ -589,8 +611,6 @@ func discoverPeers() []string {
 func main() {
 	fmt.Println("Handshake Peer Discovery and Block Header Download")
 
-C.say_hello()
-
 	// Discover peers from seeds
 
 	fmt.Println("\nDiscovering peers ...")
@@ -628,16 +648,15 @@ C.say_hello()
 
 	// Perform version handshake
 
-// TODO: replace or repair sendVersionHandshake()
-
-	fmt.Println("\nPerforming version handshake...")
+	fmt.Println("\nSending version message...")
 	err := peer.sendVersionHandshake()
 	if err != nil {
 		fmt.Printf("Handshake failed: %v\n", err)
 		return
 	}
-os.Exit(0);
 
+// WORK
+/*
 	//  Request peer addresses
 	fmt.Println("\nRequesting peer addresses...")
 	err = peer.requestPeerAddresses()
@@ -662,6 +681,7 @@ os.Exit(0);
 			}
 		}
 	}
+*/
 
 	// Request block headers starting from genesis
 	fmt.Println("\nRequesting block headers...")
@@ -705,4 +725,5 @@ os.Exit(0);
 	}
 
 	fmt.Println("\n[Complete] Successfully performed peer discovery and header download!")
+os.Exit(0)
 }

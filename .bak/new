@@ -4,7 +4,7 @@
 
 # ADD NEW FILES HERE:
 
-FILE_LIST="new bio.c bio.h hsdev.c makefile hsdev.1.ronn *.go go.mod push README.md TODO"
+FILE_LIST="new makefile hsdev.1.ronn *.go go.mod push README.md TODO"
 
 # List existing directories and grab the last from the (sorted) list
 
