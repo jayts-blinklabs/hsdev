@@ -12,9 +12,8 @@
 # Release date. For ronn, when making manual page
 #RELDATE=2025-10-15
 
-hsdev: hsdev.go
-	@echo compiling...
-	@go build -o hsdev hsdev.go
+hsdev: hsdev.go hash.go
+	@go build hsdev.go hash.go
 
 vet:
 	@go vet hsdev.go

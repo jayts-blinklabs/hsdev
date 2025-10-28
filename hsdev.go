@@ -3,7 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
+//	"crypto/rand"
+//	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -11,17 +12,16 @@ mrand	"math/rand"
 	"net"
 	"os"
 	"time"
+	"unsafe"
 )
 
 // Constants from Handshake protocol
 const (
 	// Protocol constants
-//	ProtocolVersion = 3
 	ProtocolVersion = 1	// from HNSD
 	MinVersion	= 1
-//	LocalServices	= 1	// network service
 	LocalServices	= 0	// From HNSD: no services
-	UserAgent	= "/hsd-go-client:0.1.0/"
+	UserAgent	= "/cdnsd-client:0.1.0/"
 
 	// Network magic number for mainnet.
 	MainnetMagic = 1533997779
@@ -69,11 +69,15 @@ const (
 	MaxMessage = 8 * 1000 * 1000
 )
 
-// seeds for peer discovery
 var MainnetSeeds = []string{
-	"seed.htools.work",		// Seems to work reliably as of 2025-10-15
-//	"hs-mainnet.bcoin.ninja",	// From hsd source code. Flaky
-//	"seed.easyhandshake.com",	// From hsd source code. Flaky
+	"seed.htools.work",		// Seems to work reliably as of 2025-10-23, but is it Handshake?
+//	"hs-mainnet.bcoin.ninja",	// From hsd source code. Never works!
+//	"seed.easyhandshake.com",	// From hsd source code. Never works!
+	"seed.hns.to",			// Backup from hsd sources
+	"seed.hns.network",		// Official community seed
+	"seed.handshakealliance.org",	// Alliance-maintained
+	"seed.hsd-dev.org",		// Developer seed
+	"dnsseed.handshake.org",	// Primary official seed
 }
 
 // NetAddress represents a network address
@@ -97,19 +101,31 @@ type VersionMessage struct {
 	NoRelay  bool
 }
 
-// Headers represents a block header
-type Headers struct {
-	Version		uint32
-	PrevBlock	[32]byte
-	MerkleRoot	[32]byte
-	WitnessRoot	[32]byte
-	TreeRoot	[32]byte
-	ReservedRoot	[32]byte
-	Time		uint64
-	Bits		uint32
+// Header represents a block header
+type Header struct {
+	// Preheader.
 	Nonce		uint32
+	Time		uint64
+	PrevBlock	[32]byte
+	NameRoot	[32]byte	// same as "uint8_t name_root[32]" ?
+
+	// Subheader.
 	ExtraNonce	[24]byte
+	ReservedRoot	[32]byte
+	WitnessRoot	[32]byte
+	MerkleRoot	[32]byte
+	Version		uint32
+	Bits		uint32
+
+	// Mask.
 	Mask		[32]byte
+
+	Cache bool
+	Hash [32]byte
+	Height uint32
+	Work [32]byte
+
+	Next *Header
 }
 
 // Peer represents a connection to a Handshake node
@@ -163,6 +179,17 @@ func (p *Peer) Close() {
 
 const messageHeaderLength = 9
 
+/*	The packet header is the following:
+	4 bytes : Handshake Magic Number
+	1 byte  : command/message type
+	4 bytes : Payload length (32-bit integer)
+	remaining bytes : The payload, which is added later.
+
+	The magic number and length are sent little-endian.
+	Note: The command is a SINGLE BYTE storing an integer
+	from 0 (VERSION) to about (), and NOT a 12-byte
+	string, which appears incorrectly in some documentation. */
+
 // createMessage creates a framed packet with header
 func createMessage(cmd byte, payload []byte) []byte {
 	msg := make([]byte, messageHeaderLength + len(payload))
@@ -184,9 +211,12 @@ func createMessage(cmd byte, payload []byte) []byte {
 
 // parseMessageHeader reads and validates packet header
 func parseMessageHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
+	// check the packet's size
 	if len(data) < 9 {
 		return 0, 0, fmt.Errorf("packet too short")
 	}
+
+	// Check the magic number
 
 	magic := binary.LittleEndian.Uint32(data[0:4])
 	if magic != MainnetMagic {
@@ -203,7 +233,7 @@ func parseMessageHeader(data []byte) (cmd byte, payloadLen uint32, err error) {
 func (p *Peer) sendMessage(cmd byte, payload []byte) error {
 	// Create the message, using the command (message) type and payload.
 	packet := createMessage(cmd, payload)
-	// Send it.
+	// Send it to the peer.
 	_, err := p.conn.Write(packet)
 	return err
 }
@@ -213,7 +243,11 @@ func (p *Peer) receiveMessage() (byte, []byte, error) {
 	// Read header
 	header := make([]byte, 9)
 	_, err := p.conn.Read(header)
-	if err != nil { return 0, nil, err }
+	if err != nil || len(header) < 9 {
+		return 0, nil, fmt.Errorf("failed to read from connection")
+	}
+
+fmt.Printf("Received packet magic: %d\n", binary.LittleEndian.Uint32(header[0:4]))
 
 	cmd, payloadLen, err := parseMessageHeader(header)
 	if err != nil { return 0, nil, err }
@@ -236,48 +270,82 @@ func (p *Peer) receiveMessage() (byte, []byte, error) {
 func encodeVersionMessage(version *VersionMessage) []byte {
 	buf := new(bytes.Buffer)
 
+	// 4 bytes: Protocol version.
+	// This uses 1, which is the same as HNSD.
+
 	binary.Write(buf, binary.LittleEndian, version.Version)
+
+	// Services that this node provides. Using 0, same as HNSD.
+	// Services is a 64-bit integer, so write 2 32-bit zeros.
+
 	binary.Write(buf, binary.LittleEndian, version.Services)
 	binary.Write(buf, binary.LittleEndian, uint32(0)) // high services bits
+
+	// 8 bytes; 64-bit Timestamp (Seconds since Unix epoch)
+
 	binary.Write(buf, binary.LittleEndian, version.Time)
 
-	// Remote address (88 bytes)
+	// 88 bytes: Remote address
 	encodeNetAddress(buf, &version.Remote)
 
-	// Nonce
-	buf.Write(version.Nonce[:])
+	// 8 bytes (64 bits): Nonce
+//	buf.Write(version.Nonce[:])
+	binary.Write(buf, binary.LittleEndian, hsk_nonce())
 
-	// User agent
+	// 1 byte: Length of user agent string
 	buf.WriteByte(byte(len(version.Agent)))
+	// (length) bytes: User agent
 	buf.WriteString(version.Agent)
 
-	// Height
+	// 4 bytes: Height  (Using value of 0)
 	binary.Write(buf, binary.LittleEndian, version.Height)
 
-	// No relay
+	// 1 byte: NoRelay
 	if version.NoRelay { buf.WriteByte(1) } else { buf.WriteByte(0) }
 
 	return buf.Bytes()
 }
 
+// Check this
+// 1. Does it write 88 bytes (is that the correct number?)
+// 2. Does it skip "high services" and "type"?
+// 3. does hnsd write ...
+//    time(8)
+//    services(8)
+//    type(1)
+//    ip(36)
+//    port(2 BE)
+//    key(33)
+
 // encodeNetAddress serializes a NetAddress
 func encodeNetAddress(buf *bytes.Buffer, addr *NetAddress) {
+	// 8 bytes; time
 	binary.Write(buf, binary.LittleEndian, addr.Time)
+	// 4 bytes: low bytes of Services
 	binary.Write(buf, binary.LittleEndian, addr.Services)
-	binary.Write(buf, binary.LittleEndian, uint32(0)) // high services bits
-	buf.WriteByte(0) // address type
+	// 4 bytes: high bytes of Services
+	binary.Write(buf, binary.LittleEndian, uint32(0))
+	// 1 byte: address type
+// TODO: check. always write a 0?
+	buf.WriteByte(0)
 
-	// IPv6 representation (16 bytes)
+// TODO: Check this against hnsd
+
+	// 16 bytes: address
 	if addr.Host.To4() != nil {
 		// IPv4-mapped IPv6 address
 		buf.Write([]byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff})
 		buf.Write(addr.Host.To4())
 	} else {
+		// regular address
 		buf.Write(addr.Host.To16())
 	}
 
-	buf.Write(make([]byte, 20)) // reserved
+	// 20 bytes: reserved
+	buf.Write(make([]byte, 20))
+	// 2 bytes, big endian: Port
 	binary.Write(buf, binary.BigEndian, addr.Port)
+	// 33 bytes: Key
 	buf.Write(addr.Key[:])
 }
 
@@ -304,7 +372,7 @@ func decodeNetAddress(data []byte) (*NetAddress, int, error) {
 
 // sendVersionHandshake sends VERSION
 func (p *Peer) sendVersionHandshake() error {
-	var nonce [8]byte
+//	var nonce [8]byte
 	var err error
 
 	// Create a VERSION packet.
@@ -321,14 +389,16 @@ func (p *Peer) sendVersionHandshake() error {
 		Nonce:   [8]byte{1, 2, 3, 4, 5, 6, 7, 8},
 		Agent:   UserAgent,
 		Height:  0,
-		NoRelay: false,
+		NoRelay: true,
 	}
 
 	// Set a random nonce.
 
-	_, err = rand.Read(nonce[:])
-	if err != nil { return err }
-	version.Nonce = nonce
+// NOTE: The nonce is set in encodeVersionMessage()
+// using hsk_nonce(), to match the behavior of HNSD
+//	_, err = rand.Read(nonce[:])
+//	if err != nil { return err }
+//	version.Nonce = nonce
 
 	payload := encodeVersionMessage(version)
 
@@ -417,6 +487,8 @@ func (p *Peer) receivePeerAddresses() ([]*NetAddress, error) {
 	return addresses, nil
 }
 
+// WORK
+
 // requestHeaders sends GETHEADERS request
 func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 	buf := new(bytes.Buffer)
@@ -442,7 +514,7 @@ func (p *Peer) requestHeaders(locator [][32]byte, stopHash [32]byte) error {
 }
 
 // receiveHeaders receives HEADERS response
-func (p *Peer) receiveHeaders() ([]*Headers, error) {
+func (p *Peer) receiveHeaders() ([]*Header, error) {
 	cmd, payload, err := p.receiveMessage()
 	if err != nil { return nil, err }
 
@@ -450,6 +522,10 @@ func (p *Peer) receiveHeaders() ([]*Headers, error) {
 //		return nil, fmt.Errorf("expected HEADERS, got %d", cmd)
 		fmt.Errorf("Received command: %d", cmd)
 
+// TODO: Do this in a loop to keep trying until HEADERS is received or there is a timeout.
+// Reason: Peers may send other things, even though they have been informed this peer offers no services.
+
+		// Try again
 		cmd, payload, err = p.receiveMessage()
 		if err != nil { return nil, err }
 
@@ -465,10 +541,11 @@ func (p *Peer) receiveHeaders() ([]*Headers, error) {
 		return nil, fmt.Errorf("too many headers: %d", count)
 	}
 
-	headers := make([]*Headers, 0, count)
+	headers := make([]*Header, 0, count)
 
 	for i := uint64(0); i < count; i++ {
 		header, size, err := decodeHeader(payload[offset:])
+// size is 236
 		if err != nil {
 			return nil, err
 		}
@@ -482,13 +559,16 @@ func (p *Peer) receiveHeaders() ([]*Headers, error) {
 }
 
 // decodeHeader parses a block header
-func decodeHeader(data []byte) (*Headers, int, error) {
+func decodeHeader(data []byte) (*Header, int, error) {
 	if len(data) < 196 {
 		return nil, 0, fmt.Errorf("data too short for header")
 	}
 
-	h := &Headers{}
+	h := &Header{}
 	offset := 0
+
+// Order: Preheader, Subheader, Mask
+// TODO: CHECK THIS PART !!
 
 	h.Version = binary.LittleEndian.Uint32(data[offset:])
 	offset += 4
@@ -502,7 +582,7 @@ func decodeHeader(data []byte) (*Headers, int, error) {
 	copy(h.WitnessRoot[:], data[offset:offset+32])
 	offset += 32
 
-	copy(h.TreeRoot[:], data[offset:offset+32])
+	copy(h.NameRoot[:], data[offset:offset+32])
 	offset += 32
 
 	copy(h.ReservedRoot[:], data[offset:offset+32])
@@ -577,12 +657,12 @@ func lookupHostWithTimeout(host string) ([]string, error) {
 	}()
 
 	select {
-	case <-ctx.Done():
-		return nil, fmt.Errorf("lookup timeout after %s", networkTimeout)
-	case err := <-errChan:
-		return nil, err
-	case addrs := <-resultChan:
-		return addrs, nil
+		case <-ctx.Done():
+			return nil, fmt.Errorf("lookup timeout after %s", networkTimeout)
+		case err := <-errChan:
+			return nil, err
+		case addrs := <-resultChan:
+			return addrs, nil
 	}
 }
 
@@ -608,7 +688,129 @@ func discoverPeers() []string {
 	return peers
 }
 
+func encodeHeader(buf *bytes.Buffer, _ *Header, h *Header) {
+	// Preheader
+	binary.Write(buf, binary.LittleEndian, h.Nonce)
+	binary.Write(buf, binary.LittleEndian, h.Time)
+	buf.Write(h.PrevBlock[:])
+	buf.Write(h.NameRoot[:])
+
+	// Subheader
+	buf.Write(h.ExtraNonce[:])
+	buf.Write(h.ReservedRoot[:])
+	buf.Write(h.WitnessRoot[:])
+	buf.Write(h.MerkleRoot[:])
+	binary.Write(buf, binary.LittleEndian, h.Version)
+	binary.Write(buf, binary.LittleEndian, h.Bits)
+
+	// Mask
+	buf.Write(h.Mask[:])
+}
+
+// Helper: convert any value to []byte via unsafe pointer
+func structToBytes(v any) []byte {
+	return (*(*[1 << 30]byte)(unsafe.Pointer(&v)))[:unsafe.Sizeof(v)]
+}
+
+func hexDump(v any) {
+	// Convert struct to []byte using unsafe (fast, zero-copy)
+	data := structToBytes(v)
+//	fmt.Printf("%s\n", hex.Dump(data))
+	fmt.Printf("length of header: %d\n",len(data))
+	for i := range(data) {
+		fmt.Printf("%d ",data[i])
+	}
+	fmt.Printf("\n")
+}
+
+var hexdigs = [16]uint8 {
+        '0',
+        '1',
+        '2',
+        '3',
+        '4',
+        '5',
+        '6',
+        '7',
+        '8',
+        '9',
+        'a',
+        'b',
+        'c',
+        'd',
+        'e',
+        'f',
+}
+
+func fillTestHeader(hdr *Header) {
+	var c uint8
+
+	hdr.Nonce = 1234567
+        hdr.Time = 1761496325
+
+        for i := 0; i < 32; i++ {
+                c = hexdigs[i%16]
+                hdr.PrevBlock[i] = c
+                hdr.NameRoot[i] = c
+                if i < 24 { hdr.ExtraNonce[i] = c }
+                hdr.ReservedRoot[i] = c
+                hdr.WitnessRoot[i] = c
+                hdr.MerkleRoot[i] = c
+                hdr.Hash[i] = c
+                hdr.Work[i] = c
+        }
+        hdr.Bits = 1234567
+        hdr.Cache = false
+        hdr.Height = 0
+}
+
+func makeTestHeader() *Header {
+	var h = Header{}
+	var hdr *Header
+	hdr = &h
+	fillTestHeader(hdr)
+	return hdr
+}
+
 func main() {
+
+var testHeader *Header
+var size int
+
+	// Print the size of the header struct.
+
+	size = int(unsafe.Sizeof(*testHeader))
+	fmt.Printf("Size of header: %d bytes\n",size)
+
+	// Create the test data. A fake header.
+
+	testHeader = makeTestHeader()
+	testHeader.Cache = false
+
+	// Print the bytes in the header has hex uint8.
+
+//	fmt.Printf("Test Header:\n"); hexDump(testHeader)
+
+	fmt.Printf("Header Contents:")
+	p := unsafe.Slice((*uint8)(unsafe.Pointer(testHeader)), size)
+	for i := 0; i < size; i++ {
+		if i%16 == 0 { fmt.Printf("\n") }
+		fmt.Printf("%2x ",p[i])
+	}
+	fmt.Printf("\n")
+	
+
+	// Calculate the header's hash
+
+	testHash := HeaderCache(testHeader)
+
+	// Print it.
+
+	fmt.Printf("Header hash:\n")
+	fmt.Printf("%x\n", testHash)
+	os.Exit(0)
+
+/////////////////////////////////////////////////
 	fmt.Println("Handshake Peer Discovery and Block Header Download")
 
 	// Discover peers from seeds
@@ -655,9 +857,13 @@ func main() {
 		return
 	}
 
-// WORK
 /*
-	//  Request peer addresses
+// (commented out temporarily to skip ahead to header downloading)
+
+	// Request the peer's peer addresses. Multiple peers
+	// are used to download blocks in parallel, saving
+	// time and avoiding overloading individual peers.
+
 	fmt.Println("\nRequesting peer addresses...")
 	err = peer.requestPeerAddresses()
 	if err != nil {
@@ -684,7 +890,10 @@ func main() {
 */
 
 	// Request block headers starting from genesis
-	fmt.Println("\nRequesting block headers...")
+	fmt.Println("\nStarting header sync...")
+
+var locator [][32]byte
+var stopHash [32]byte
 
 	// Genesis block hash as locator
 	genesisHash := [32]byte{}
@@ -692,20 +901,54 @@ func main() {
 	genesisBytes, _ := hex.DecodeString(genesisHashHex)
 	copy(genesisHash[:], genesisBytes)
 
-	locator := [][32]byte{genesisHash}
-	stopHash := [32]byte{} // Zero hash means no stop
+	locator = [][32]byte{genesisHash}
+	stopHash = [32]byte{} // Zero hash means no stop
 
-	err = peer.requestHeaders(locator, stopHash)
-	if err != nil {
-		fmt.Printf("Failed to request headers: %v\n", err)
-		return
-	}
+	var headers []*Header
+	totalHeaders := 0
 
-	// Receive headers
-	headers, err := peer.receiveHeaders()
-	if err != nil {
-		fmt.Printf("Failed to receive headers: %v\n", err)
-		return
+	// Get the headers, 2000 at a time.
+
+	for {
+		err = peer.requestHeaders(locator, stopHash)
+		if err != nil {
+			fmt.Printf("Failed to request headers: %v\n", err)
+			return
+		}
+
+		// Receive headers
+		headers, err := peer.receiveHeaders()
+		if err != nil {
+			fmt.Printf("Failed to receive headers: %v\n", err)
+			os.Exit(1)
+		}
+
+		totalHeaders += len(headers)
+		fmt.Printf("Received %d headers (total: %d)\n", len(headers), totalHeaders)
+		// Print first header of this batch
+		fmt.Printf("   First: ... hash: %x\n", HeaderCache(headers[0]))
+
+		// Use last header as new locator
+		lastHeader := headers[len(headers)-1]
+size := unsafe.Sizeof(lastHeader)
+fmt.Println("Size of Header:", size, "bytes")
+os.Exit(1)
+
+lastHash := HeaderCache(lastHeader)
+fmt.Printf("Last Header: "); hexDump(lastHeader)
+fmt.Printf("Last Hash: %x\n", lastHash)
+os.Exit(0)
+		locator = [][32]byte{lastHash}
+
+		// If there are fewer than 2000 headers, it is at the tip.
+
+		if len(headers) < 2000 {
+			fmt.Printf("Sync complete. Tip hash: %x\n",lastHash)
+			break
+		}
+
+		// to keep the peer from banning due to high demand on it.
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	// Display received headers
@@ -724,6 +967,6 @@ func main() {
 		fmt.Printf("    Nonce: %d\n", header.Nonce)
 	}
 
-	fmt.Println("\n[Complete] Successfully performed peer discovery and header download!")
+	fmt.Println("\nCompleted peer discovery and header download.")
 os.Exit(0)
 }

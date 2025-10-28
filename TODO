@@ -1,0 +1,7 @@
+To calculate an SHA256 hash:
+	sum := sha256.Sum256([]byte("hello world\n"))
+
+Add failovers to disconnect or re-select peer.
+
+Accept any messages from peers.
+	Setting Services to 0 does not prevent peers from asking for things!

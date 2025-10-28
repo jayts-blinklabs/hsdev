@@ -1,0 +1,113 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/u/dl/hsdev/hash/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+G	hash.c	/^#define G(/;"	d	file:
+HSK_BLAKE2B_BLOCKBYTES	hash.c	/^  HSK_BLAKE2B_BLOCKBYTES = 128,$/;"	e	enum:hsk_blake2b_constant	file:
+HSK_BLAKE2B_KEYBYTES	hash.c	/^  HSK_BLAKE2B_KEYBYTES = 64,$/;"	e	enum:hsk_blake2b_constant	file:
+HSK_BLAKE2B_OUTBYTES	hash.c	/^  HSK_BLAKE2B_OUTBYTES = 64,$/;"	e	enum:hsk_blake2b_constant	file:
+HSK_BLAKE2B_PERSONALBYTES	hash.c	/^  HSK_BLAKE2B_PERSONALBYTES = 16$/;"	e	enum:hsk_blake2b_constant	file:
+HSK_BLAKE2B_SALTBYTES	hash.c	/^  HSK_BLAKE2B_SALTBYTES = 16,$/;"	e	enum:hsk_blake2b_constant	file:
+HSK_BLAKE2_INLINE	hash.c	/^    #define HSK_BLAKE2_INLINE /;"	d	file:
+HSK_BLAKE2_INLINE	hash.c	/^    #define HSK_BLAKE2_INLINE$/;"	d	file:
+HSK_BLAKE2_INLINE	hash.c	/^  #define HSK_BLAKE2_INLINE /;"	d	file:
+HSK_BLAKE2_PACKED	hash.c	/^#define HSK_BLAKE2_PACKED(/;"	d	file:
+HSK_SHA3_FINALIZED	hash.c	/^#define HSK_SHA3_FINALIZED /;"	d	file:
+HSK_SHA3_ROUNDS	hash.c	/^#define HSK_SHA3_ROUNDS /;"	d	file:
+I64	hash.c	/^#define I64(/;"	d	file:
+IS_ALIGNED_64	hash.c	/^#define IS_ALIGNED_64(/;"	d	file:
+ROTL64	hash.c	/^#define ROTL64(/;"	d	file:
+ROUND	hash.c	/^#define ROUND(/;"	d	file:
+bits	hash.c	/^	uint32_t bits;$/;"	m	struct:hsk_header_s	typeref:typename:uint32_t	file:
+block_size	hash.c	/^  unsigned block_size;$/;"	m	struct:hsk_sha3_ctx	typeref:typename:unsigned	file:
+buf	hash.c	/^	uint8_t buf[HSK_BLAKE2B_BLOCKBYTES];$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:uint8_t[]	file:
+buflen	hash.c	/^	size_t buflen;$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:size_t	file:
+cache	hash.c	/^	bool cache;$/;"	m	struct:hsk_header_s	typeref:typename:bool	file:
+extra_nonce	hash.c	/^	uint8_t extra_nonce[24];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[24]	file:
+f	hash.c	/^	uint64_t f[2];$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:uint64_t[2]	file:
+fill_test_header	hash.c	/^void fill_test_header(hsk_header_t *hdr)$/;"	f	typeref:typename:void
+h	hash.c	/^	uint64_t h[8];$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:uint64_t[8]	file:
+hash	hash.c	/^	uint8_t hash[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+hash	hash.c	/^  uint64_t hash[hsk_sha3_max_permutation_size];$/;"	m	struct:hsk_sha3_ctx	typeref:typename:uint64_t[]	file:
+height	hash.c	/^	uint32_t height;$/;"	m	struct:hsk_header_s	typeref:typename:uint32_t	file:
+hexdigs	hash.c	/^char hexdigs[16] = $/;"	v	typeref:typename:char[16]
+hsk_blake2b_IV	hash.c	/^static const uint64_t hsk_blake2b_IV[8] =$/;"	v	typeref:typename:const uint64_t[8]	file:
+hsk_blake2b_compress	hash.c	/^static void hsk_blake2b_compress(hsk_blake2b_ctx *ctx, const uint8_t block[HSK_BLAKE2B_BLOCKBYTE/;"	f	typeref:typename:void	file:
+hsk_blake2b_constant	hash.c	/^enum hsk_blake2b_constant$/;"	g	file:
+hsk_blake2b_ctx	hash.c	/^} hsk_blake2b_ctx;$/;"	t	typeref:struct:hsk_blake2b_ctx__	file:
+hsk_blake2b_ctx__	hash.c	/^typedef struct hsk_blake2b_ctx__$/;"	s	file:
+hsk_blake2b_final	hash.c	/^int hsk_blake2b_final(hsk_blake2b_ctx *ctx, void *out, size_t outlen)$/;"	f	typeref:typename:int
+hsk_blake2b_increment_counter	hash.c	/^static void hsk_blake2b_increment_counter(hsk_blake2b_ctx *ctx, const uint64_t inc)$/;"	f	typeref:typename:void	file:
+hsk_blake2b_init	hash.c	/^int hsk_blake2b_init(hsk_blake2b_ctx *ctx, size_t outlen)$/;"	f	typeref:typename:int
+hsk_blake2b_init0	hash.c	/^static void hsk_blake2b_init0(hsk_blake2b_ctx *ctx)$/;"	f	typeref:typename:void	file:
+hsk_blake2b_init_param	hash.c	/^int hsk_blake2b_init_param(hsk_blake2b_ctx *ctx, const hsk_blake2b_param *P)$/;"	f	typeref:typename:int
+hsk_blake2b_is_lastblock	hash.c	/^static int hsk_blake2b_is_lastblock(const hsk_blake2b_ctx *ctx)$/;"	f	typeref:typename:int	file:
+hsk_blake2b_param	hash.c	/^typedef struct hsk_blake2b_param__ hsk_blake2b_param;$/;"	t	typeref:struct:hsk_blake2b_param__	file:
+hsk_blake2b_set_lastblock	hash.c	/^static void hsk_blake2b_set_lastblock(hsk_blake2b_ctx *ctx)$/;"	f	typeref:typename:void	file:
+hsk_blake2b_set_lastnode	hash.c	/^static void hsk_blake2b_set_lastnode(hsk_blake2b_ctx *ctx)$/;"	f	typeref:typename:void	file:
+hsk_blake2b_sigma	hash.c	/^static const uint8_t hsk_blake2b_sigma[12][16] = {$/;"	v	typeref:typename:const uint8_t[12][16]	file:
+hsk_blake2b_update	hash.c	/^int hsk_blake2b_update(hsk_blake2b_ctx *ctx, const void *pin, size_t inlen)$/;"	f	typeref:typename:int
+hsk_hash_blake256	hash.c	/^void hsk_hash_blake256(const uint8_t *data, size_t data_len, uint8_t *hash)$/;"	f	typeref:typename:void
+hsk_hash_blake512	hash.c	/^void hsk_hash_blake512(const uint8_t *data, size_t data_len, uint8_t *hash)$/;"	f	typeref:typename:void
+hsk_header_cache	hash.c	/^const uint8_t *hsk_header_cache(hsk_header_t *hdr)$/;"	f	typeref:typename:const uint8_t *
+hsk_header_commit_hash	hash.c	/^void hsk_header_commit_hash(const hsk_header_t *hdr, uint8_t *hash)$/;"	f	typeref:typename:void
+hsk_header_mask_hash	hash.c	/^void hsk_header_mask_hash(const hsk_header_t *hdr, uint8_t *hash)$/;"	f	typeref:typename:void
+hsk_header_padding	hash.c	/^void hsk_header_padding(const hsk_header_t *hdr, uint8_t *pad, size_t size)$/;"	f	typeref:typename:void
+hsk_header_pre_encode	hash.c	/^int hsk_header_pre_encode(const hsk_header_t *hdr, uint8_t *data)$/;"	f	typeref:typename:int
+hsk_header_pre_size	hash.c	/^int hsk_header_pre_size(const hsk_header_t *hdr)$/;"	f	typeref:typename:int
+hsk_header_pre_write	hash.c	/^int hsk_header_pre_write(const hsk_header_t *hdr, uint8_t **data)$/;"	f	typeref:typename:int
+hsk_header_s	hash.c	/^typedef struct hsk_header_s$/;"	s	file:
+hsk_header_sub_encode	hash.c	/^int hsk_header_sub_encode(const hsk_header_t *hdr, uint8_t *data)$/;"	f	typeref:typename:int
+hsk_header_sub_hash	hash.c	/^void hsk_header_sub_hash(const hsk_header_t *hdr, uint8_t *hash)$/;"	f	typeref:typename:void
+hsk_header_sub_size	hash.c	/^int hsk_header_sub_size(const hsk_header_t *hdr)$/;"	f	typeref:typename:int
+hsk_header_sub_write	hash.c	/^int hsk_header_sub_write(const hsk_header_t *hdr, uint8_t **data)$/;"	f	typeref:typename:int
+hsk_header_t	hash.c	/^} hsk_header_t;$/;"	t	typeref:struct:hsk_header_s	file:
+hsk_keccak_chi	hash.c	/^static void hsk_keccak_chi(uint64_t *A)$/;"	f	typeref:typename:void	file:
+hsk_keccak_init	hash.c	/^static void hsk_keccak_init(hsk_sha3_ctx *ctx, unsigned bits)$/;"	f	typeref:typename:void	file:
+hsk_keccak_pi	hash.c	/^static void hsk_keccak_pi(uint64_t *A)$/;"	f	typeref:typename:void	file:
+hsk_keccak_round_constants	hash.c	/^static uint64_t hsk_keccak_round_constants[HSK_SHA3_ROUNDS] =$/;"	v	typeref:typename:uint64_t[]	file:
+hsk_keccak_theta	hash.c	/^static void hsk_keccak_theta(uint64_t *A)$/;"	f	typeref:typename:void	file:
+hsk_sha3_256_init	hash.c	/^void hsk_sha3_256_init(hsk_sha3_ctx *ctx)$/;"	f	typeref:typename:void
+hsk_sha3_ctx	hash.c	/^typedef struct hsk_sha3_ctx$/;"	s	file:
+hsk_sha3_ctx	hash.c	/^} hsk_sha3_ctx;$/;"	t	typeref:struct:hsk_sha3_ctx	file:
+hsk_sha3_final	hash.c	/^void hsk_sha3_final(hsk_sha3_ctx *ctx, unsigned char *result)$/;"	f	typeref:typename:void
+hsk_sha3_max_permutation_size	hash.c	/^#define hsk_sha3_max_permutation_size /;"	d	file:
+hsk_sha3_max_rate_in_qwords	hash.c	/^#define hsk_sha3_max_rate_in_qwords /;"	d	file:
+hsk_sha3_permutation	hash.c	/^static void hsk_sha3_permutation(uint64_t *state)$/;"	f	typeref:typename:void	file:
+hsk_sha3_process_block	hash.c	/^static void hsk_sha3_process_block(uint64_t hash[25], const uint64_t *block, size_t block_size)$/;"	f	typeref:typename:void	file:
+hsk_sha3_update	hash.c	/^void hsk_sha3_update(hsk_sha3_ctx *ctx, const unsigned char *msg, size_t size)$/;"	f	typeref:typename:void
+last_node	hash.c	/^	uint8_t last_node;$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:uint8_t	file:
+le2me_64	hash.c	/^#define le2me_64(/;"	d	file:
+load64	hash.c	/^uint64_t load64(const void *src) {$/;"	f	typeref:typename:HSK_BLAKE2_INLINE uint64_t	file:
+main	hash.c	/^int main()$/;"	f	typeref:typename:int
+make_test_header	hash.c	/^hsk_header_t *make_test_header(void)$/;"	f	typeref:typename:hsk_header_t *
+mask	hash.c	/^	uint8_t mask[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+me64_to_le_str	hash.c	/^#define me64_to_le_str(/;"	d	file:
+merkle_root	hash.c	/^	uint8_t merkle_root[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+message	hash.c	/^  uint64_t message[hsk_sha3_max_rate_in_qwords];$/;"	m	struct:hsk_sha3_ctx	typeref:typename:uint64_t[]	file:
+name_root	hash.c	/^	uint8_t name_root[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+next	hash.c	/^	struct hsk_header_s *next;$/;"	m	struct:hsk_header_s	typeref:struct:hsk_header_s *	file:
+nonce	hash.c	/^	uint32_t nonce;$/;"	m	struct:hsk_header_s	typeref:typename:uint32_t	file:
+outlen	hash.c	/^	size_t outlen;$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:size_t	file:
+prev_block	hash.c	/^	uint8_t prev_block[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+reserved_root	hash.c	/^	uint8_t reserved_root[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+rest	hash.c	/^  unsigned rest;$/;"	m	struct:hsk_sha3_ctx	typeref:typename:unsigned	file:
+rotr64	hash.c	/^static HSK_BLAKE2_INLINE uint64_t rotr64(const uint64_t w, const unsigned c)$/;"	f	typeref:typename:HSK_BLAKE2_INLINE uint64_t	file:
+secure_zero_memory	hash.c	/^static HSK_BLAKE2_INLINE void secure_zero_memory(void *v, size_t n)$/;"	f	typeref:typename:HSK_BLAKE2_INLINE void	file:
+store32	hash.c	/^void store32(void *dst, uint32_t w) {$/;"	f	typeref:typename:HSK_BLAKE2_INLINE void	file:
+store64	hash.c	/^static HSK_BLAKE2_INLINE void store64(void *dst, uint64_t w)$/;"	f	typeref:typename:HSK_BLAKE2_INLINE void	file:
+t	hash.c	/^	uint64_t t[2];$/;"	m	struct:hsk_blake2b_ctx__	typeref:typename:uint64_t[2]	file:
+time	hash.c	/^	uint64_t time;$/;"	m	struct:hsk_header_s	typeref:typename:uint64_t	file:
+version	hash.c	/^	uint32_t version;$/;"	m	struct:hsk_header_s	typeref:typename:uint32_t	file:
+witness_root	hash.c	/^	uint8_t witness_root[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+work	hash.c	/^	uint8_t work[32];$/;"	m	struct:hsk_header_s	typeref:typename:uint8_t[32]	file:
+write_bytes	hash.c	/^static inline size_t write_bytes(uint8_t **data, const uint8_t *bytes, size_t size)$/;"	f	typeref:typename:size_t	file:
+write_u32	hash.c	/^static inline size_t write_u32(uint8_t **data, uint32_t out)$/;"	f	typeref:typename:size_t	file:
+write_u64	hash.c	/^static inline size_t write_u64(uint8_t **data, uint64_t out)$/;"	f	typeref:typename:size_t	file:
