@@ -817,16 +817,13 @@ const uint8_t *hsk_header_cache(hsk_header_t *hdr)
 
 	// Generate pads.
 	hsk_header_padding(hdr, pad8, 8);
-printf("Header at place 001:\n");
-dump_header(hdr);
+printf("Header at place 001:\n"); dump_header(hdr);
 	hsk_header_padding(hdr, pad32, 32);
-printf("Header at place 002:\n");
-dump_header(hdr);
+printf("Header at place 002:\n"); dump_header(hdr);
 
 	// Generate left.
 	hsk_header_pre_encode(hdr, pre);
-printf("Header at place 003:\n");
-dump_header(hdr);
+printf("Header at place 003:\n"); dump_header(hdr);
 	hsk_hash_blake512(pre, size, left);
 // TODO: dump pre, size, and left as appropriate
 
@@ -847,24 +844,25 @@ printf("s_ctx at place 008:\n"); dump_hex(&s_ctx,sizeof(hsk_sha3_ctx));
 	hsk_blake2b_ctx b_ctx;
 printf("b_ctx at place 009:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
 	assert(hsk_blake2b_init(&b_ctx, 32) == 0);
-	hsk_blake2b_update(&b_ctx, left, 64);
 printf("b_ctx at place 010:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
-	hsk_blake2b_update(&b_ctx, pad32, 32);
+	hsk_blake2b_update(&b_ctx, left, 64);
 printf("b_ctx at place 011:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
-	hsk_blake2b_update(&b_ctx, right, 32);
+	hsk_blake2b_update(&b_ctx, pad32, 32);
 printf("b_ctx at place 012:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
-	assert(hsk_blake2b_final(&b_ctx, hdr->hash, 32) == 0);
+	hsk_blake2b_update(&b_ctx, right, 32);
 printf("b_ctx at place 013:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
+	assert(hsk_blake2b_final(&b_ctx, hdr->hash, 32) == 0);
+printf("b_ctx at place 014:\n"); dump_hex(&b_ctx,sizeof(hsk_blake2b_ctx));
 
 	// XOR PoW hash with arbitrary bytes.
 	// This can be used by mining pools to
 	// mitigate block witholding attacks.
 
-printf("Header at place 014:\n");
-dump_header(hdr);
+printf("Header at place 015:\n"); dump_header(hdr);
+
 	for(int i = 0; i < 32; i++) hdr->hash[i] ^= hdr->mask[i];
-printf("Header at place 015:\n");
-dump_header(hdr);
+
+printf("Header at place 016:\n"); dump_header(hdr);
 
 	hdr->cache = true;
 
@@ -951,7 +949,6 @@ void dump_header(hsk_header_t *hdr)
 	// Print the bytes in the header as hex uint8_t.
 
 	size = sizeof(hsk_header_t);
-
 	printf("Header Contents:");
 	p = (uint8_t *) hdr;
 	for(int i = 0; i < size; ++i)

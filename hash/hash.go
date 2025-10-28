@@ -4,6 +4,7 @@ import (
 "fmt"
 	"encoding/binary"
 	"unsafe"
+//	"os"
 )
 
 const SHA3_MAX_PERMUTATION_SIZE = 25
@@ -715,40 +716,50 @@ func HeaderCache(hdr *Header) [32]byte {
 
 	// Generate pads
 	HeaderPadding(hdr, pad8[:], 8)
-fmt.Printf("Header at place 001:\n");
-dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
+fmt.Printf("Header at place 001:\n"); dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 	HeaderPadding(hdr, pad32[:], 32)
-fmt.Printf("Header at place 002:\n");
-dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
+fmt.Printf("Header at place 002:\n"); dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 
 	// Generate left
 	HeaderPreEncode(hdr, pre)
-fmt.Printf("Header at place 003:\n");
-dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
+fmt.Printf("Header at place 003:\n"); dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 	HashBlake512(pre, size, left)
 
 	// Generate right
 	var sCtx Sha3Ctx
+fmt.Printf("Header at place 004:\n"); dump_hex(unsafe.Pointer(&sCtx),int(unsafe.Sizeof(sCtx)))
 	Sha3_256_Init(&sCtx)
+fmt.Printf("Header at place 005:\n"); dump_hex(unsafe.Pointer(&sCtx),int(unsafe.Sizeof(sCtx)))
 	Sha3Update(&sCtx, pre, size)
+fmt.Printf("Header at place 006:\n"); dump_hex(unsafe.Pointer(&sCtx),int(unsafe.Sizeof(sCtx)))
 	Sha3Update(&sCtx, pad8[:], 8)
+fmt.Printf("Header at place 007:\n"); dump_hex(unsafe.Pointer(&sCtx),int(unsafe.Sizeof(sCtx)))
 	Sha3Final(&sCtx, right[:])
+fmt.Printf("Header at place 008:\n"); dump_hex(unsafe.Pointer(&sCtx),int(unsafe.Sizeof(sCtx)))
 
 	// Generate hash
 	var bCtx Blake2bCtx
+fmt.Printf("Header at place 009:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 	Blake2bInit(&bCtx, 32)
+fmt.Printf("Header at place 010:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 	Blake2bUpdate(&bCtx, left[:], 64)
+fmt.Printf("Header at place 011:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 	Blake2bUpdate(&bCtx, pad32[:], 32)
+fmt.Printf("Header at place 012:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 	Blake2bUpdate(&bCtx, right[:], 32)
+fmt.Printf("Header at place 013:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 	Blake2bFinal(&bCtx, hdr.Hash[:], 32)
+fmt.Printf("Header at place 014:\n"); dump_hex(unsafe.Pointer(&bCtx),int(unsafe.Sizeof(bCtx)))
 
 	// XOR PoW hash with arbitrary bytes.
         // This can be used by mining pools to
         // mitigate block witholding attacks.
 
+fmt.Printf("Header at place 015:\n"); dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
+
 	for i := 0; i < 32; i++ { hdr.Hash[i] ^= hdr.Mask[i] }
-fmt.Printf("Header at place 004:\n");
-dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
+
+fmt.Printf("Header at place 016:\n"); dumpHeader(hdr)
 
 	hdr.Cache = true
 
@@ -847,14 +858,18 @@ func dump_hex(ptr unsafe.Pointer, len int) {
 	fmt.Println()
 }
 
-/*
-func dump_hex(any, len uint64)
-{
-	var bytes *uint8
-        for i := 0; i < len; ++i { printf("%02x",bytes[i]) }
-        fmt.Printf("\n")
+func dumpHeader(hdr *Header) {
+	var size int
+
+	size = int(unsafe.Sizeof(*hdr))
+	fmt.Printf("Header Contents:")
+	p := unsafe.Slice((*uint8)(unsafe.Pointer(hdr)), size)
+	for i := 0; i < size; i++ {
+		if i%16 == 0 { fmt.Printf("\n") }
+		fmt.Printf("%2x ",p[i])
+	}
+	fmt.Printf("\n")
 }
-*/
 
 // Dummy main, since C has it, but hdr not initialized.
 func main() {
@@ -873,8 +888,10 @@ func main() {
 
 	// Print the bytes in the header has hex uint8.
 
-//	fmt.Printf("Test Header:\n"); hexDump(testHeader)
+	fmt.Printf("Test ")
+	dumpHeader(testHeader)
 
+/*
 	fmt.Printf("Header Contents:")
 	p := unsafe.Slice((*uint8)(unsafe.Pointer(testHeader)), size)
 	for i := 0; i < size; i++ {
@@ -882,7 +899,7 @@ func main() {
 		fmt.Printf("%2x ",p[i])
 	}
 	fmt.Printf("\n")
-	
+*/
 
 	// Calculate the header's hash
 
