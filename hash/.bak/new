@@ -4,7 +4,7 @@
 #   and move current backup files to it
 
 # add new files here:
-FILE_LIST="hash.c makefile new TODO"
+FILE_LIST="new hash.c hash.go makefile TODO"
 
 # list existing directories
 # and grab the last in the list

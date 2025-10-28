@@ -718,9 +718,13 @@ func HeaderCache(hdr *Header) [32]byte {
 fmt.Printf("Header at place 001:\n");
 dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 	HeaderPadding(hdr, pad32[:], 32)
+fmt.Printf("Header at place 002:\n");
+dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 
 	// Generate left
 	HeaderPreEncode(hdr, pre)
+fmt.Printf("Header at place 003:\n");
+dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 	HashBlake512(pre, size, left)
 
 	// Generate right
@@ -743,6 +747,8 @@ dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
         // mitigate block witholding attacks.
 
 	for i := 0; i < 32; i++ { hdr.Hash[i] ^= hdr.Mask[i] }
+fmt.Printf("Header at place 004:\n");
+dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 
 	hdr.Cache = true
 
