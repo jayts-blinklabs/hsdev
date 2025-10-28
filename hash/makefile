@@ -4,13 +4,13 @@ hash: hash.c hash.go
 	@go build -o hg hash.go
 
 clean:
-	@rm -f a.out hash
+	@rm -f hc hg
 
 tags:
 	@ctags *.c
 
 wc:
-	@wc -l hash.c
+	@wc -l hash.c hash.go
 
 back backup bak:
 	@cp hash.c hash.go makefile TODO .bak

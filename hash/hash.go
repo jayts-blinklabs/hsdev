@@ -715,6 +715,8 @@ func HeaderCache(hdr *Header) [32]byte {
 
 	// Generate pads
 	HeaderPadding(hdr, pad8[:], 8)
+fmt.Printf("Header at place 001:\n");
+dump_hex(unsafe.Pointer(hdr),int(unsafe.Sizeof(hdr)))
 	HeaderPadding(hdr, pad32[:], 32)
 
 	// Generate left
@@ -816,6 +818,37 @@ func makeTestHeader() *Header {
 	fillTestHeader(hdr)
 	return hdr
 }
+
+/* Functions for displaying values of various sizes in hex.
+   For debugging. */
+
+// Print 8-, 16-, 32-, and 64-bit unsigned integers.
+func dump_8(x uint8)   { fmt.Printf("%2x", x); }
+func dump_16(x uint16) { fmt.Printf("%3x", x); }
+func dump_32(x uint32) { fmt.Printf("%5x", x); }
+func dump_64(x uint64) { fmt.Printf("%9lx", x); }
+
+// Display a buffer in hex, given a pointer to it.
+
+// dump_hex() prints the hexadecimal representation of a buffer starting at the given pointer.
+// The ptr argument can be any pointer type (e.g., *byte, *uint32, unsafe.Pointer, etc.),
+// and it is treated as the address of the first byte of a buffer of length len.
+func dump_hex(ptr unsafe.Pointer, len int) {
+	bytes := (*[1 << 30]byte)(ptr)[:len] // Safely slice up to len bytes
+	for i := 0; i < len; i++ {
+		fmt.Printf("%02x", bytes[i])
+	}
+	fmt.Println()
+}
+
+/*
+func dump_hex(any, len uint64)
+{
+	var bytes *uint8
+        for i := 0; i < len; ++i { printf("%02x",bytes[i]) }
+        fmt.Printf("\n")
+}
+*/
 
 // Dummy main, since C has it, but hdr not initialized.
 func main() {

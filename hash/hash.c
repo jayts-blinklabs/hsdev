@@ -6,6 +6,14 @@
 #include <stdbool.h>
 #include <assert.h>
 
+/* Forward declarations for debugging functions. */
+
+void dump_8(uint8_t x);
+void dump_16(uint16_t x);
+void dump_32(uint32_t x);
+void dump_64(uint64_t x);
+void dump_hex(void *ptr, size_t len);
+
 #define hsk_sha3_max_permutation_size 25
 #define hsk_sha3_max_rate_in_qwords 24
 
@@ -804,6 +812,8 @@ const uint8_t *hsk_header_cache(hsk_header_t *hdr)
 
 	// Generate pads.
 	hsk_header_padding(hdr, pad8, 8);
+printf("Header at place 001:\n");
+dump_hex(hdr,sizeof(hdr));
 	hsk_header_padding(hdr, pad32, 32);
 
 	// Generate left.
@@ -888,6 +898,24 @@ hsk_header_t *make_test_header(void)
 	fill_test_header(hdr);
 
 	return hdr;
+}
+
+/* Functions for displaying values of various sizes in hex.
+   For debugging. */
+
+// Print 8-, 16-, 32-, and 64-bit unsigned integers.
+void dump_8(uint8_t x)   { printf("%2x", (uint8_t) x); }
+void dump_16(uint16_t x) { printf("%3x",(uint16_t) x); }
+void dump_32(uint32_t x) { printf("%5x",(uint32_t) x); }
+void dump_64(uint64_t x) { printf("%9lx",(uint64_t) x); }
+
+// Display a buffer in hex, given a pointer to it.
+
+void dump_hex(void *ptr, size_t len)
+{
+	unsigned char *bytes = ptr;
+	for(int i = 0; i < len; ++i) printf("%02x",bytes[i]);
+	printf("\n");
 }
 
 int main()
